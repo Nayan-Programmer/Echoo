@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Chat - EchooAI</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-neutral-950 text-white flex flex-col items-center justify-start min-h-screen p-6 transition-colors duration-300">
+
+<!-- Top bar: Logo + Theme Toggle -->
+<div class="flex w-full max-w-md justify-between items-center mb-6">
+  <!-- Logo -->
+  <div class="w-10 h-10 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-lg flex items-center justify-center">
+    <span class="text-white font-bold text-lg font-['Pacifico']">E</span>
+  </div>
+
+  <!-- Theme Toggle Button -->
+  <button id="themeBtn" class="px-4 py-2 rounded-xl bg-white text-neutral-900 hover:bg-gray-200 transition-colors">Light Mode</button>
+</div>
+
+<!-- Chatbox -->
+<div id="chatContainer" class="bg-neutral-900/60 rounded-3xl p-6 shadow-xl w-full max-w-md flex flex-col h-[600px] transition-colors duration-300">
+    <div id="chatBox" class="flex-1 flex flex-col gap-3 overflow-y-auto mb-4 p-2 border border-white/10 rounded-2xl"></div>
+    <div class="flex gap-2">
+        <input id="userInput" type="text" placeholder="Ask AI anything..." class="flex-1 px-4 py-2 rounded-2xl bg-neutral-800 placeholder-white/50 outline-none transition-colors duration-300"/>
+        <button id="sendBtn" class="px-4 py-2 bg-cyan-500 rounded-2xl hover:bg-cyan-600 transition-colors duration-300">Send</button>
+    </div>
+</div>
+
+<script>
+const chatBox = document.getElementById('chatBox');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const themeBtn = document.getElementById('themeBtn');
+const chatContainer = document.getElementById('chatContainer');
+let darkMode = true;
+
+// Theme toggle
+themeBtn.addEventListener('click', () => {
+    darkMode = !darkMode;
+    if(darkMode){
+        document.body.classList.remove('bg-white', 'text-neutral-900');
+        document.body.classList.add('bg-neutral-950', 'text-white');
+        chatContainer.classList.remove('bg-white/80');
+        chatContainer.classList.add('bg-neutral-900/60');
+        userInput.classList.remove('bg-white', 'text-neutral-900', 'placeholder-black/40');
+        userInput.classList.add('bg-neutral-800', 'placeholder-white/50', 'text-white');
+        themeBtn.textContent = 'Light Mode';
+    } else {
+        document.body.classList.remove('bg-neutral-950', 'text-white');
+        document.body.classList.add('bg-white', 'text-neutral-900');
+        chatContainer.classList.remove('bg-neutral-900/60');
+        chatContainer.classList.add('bg-white/80');
+        userInput.classList.remove('bg-neutral-800', 'text-white', 'placeholder-white/50');
+        userInput.classList.add('bg-white', 'text-neutral-900', 'placeholder-black/40');
+        themeBtn.textContent = 'Dark Mode';
+    }
+});
+
+// Send message
+sendBtn.addEventListener('click', sendMessage);
+userInput.addEventListener('keypress', e => { if(e.key==='Enter') sendMessage(); });
+
+async function sendMessage() {
+    const msg = userInput.value.trim();
+    if(!msg) return;
+    addMessage(msg, 'user');
+    userInput.value='';
+
+    try {
+        const res = await fetch('/chat', { // <-- Flask route
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({message: msg}) // <-- Flask expects "message"
+        });
+        const data = await res.json();
+        addMessage(data.reply, 'ai');
+    } catch {
+        addMessage('Error: Unable to reach AI backend.', 'ai');
+    }
+}
+
+function addMessage(text, sender) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    div.className = sender==='user'
+        ? 'self-end bg-cyan-600 text-white px-4 py-2 rounded-2xl max-w-[80%]'
+        : 'bg-neutral-800 text-white px-4 py-2 rounded-2xl max-w-[80%]';
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+</script>
+
+</body>
+</html>
