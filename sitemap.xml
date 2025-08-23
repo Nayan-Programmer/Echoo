@@ -1,15 +1,31 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-   <url>
-      <loc>https://echooai.in/</loc>
-      <lastmod>2025-08-23</lastmod>
-      <changefreq>daily</changefreq>
-      <priority>1.0</priority>
-   </url>
-   <url>
-      <loc>https://echooai.in/page1</loc>
-      <lastmod>2025-08-23</lastmod>
-      <changefreq>weekly</changefreq>
-      <priority>0.8</priority>
-   </url>
-</urlset>
+from flask import Flask, Response
+import datetime
+
+app = Flask(__name__)
+
+@app.route("/sitemap.xml", methods=["GET"])
+def sitemap():
+    pages = [
+        {"loc": "https://echooai.in/", "changefreq":"daily", "priority":"1.0"},
+        {"loc": "https://echooai.in/about", "changefreq":"monthly", "priority":"0.8"},
+        {"loc": "https://echooai.in/contact", "changefreq":"monthly", "priority":"0.8"},
+        {"loc": "https://echooai.in/chat", "changefreq":"daily", "priority":"0.9"}
+    ]
+
+    xml_sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    today = datetime.datetime.today().strftime('%Y-%m-%d')
+
+    for page in pages:
+        xml_sitemap += f"""
+    <url>
+        <loc>{page['loc']}</loc>
+        <lastmod>{today}</lastmod>
+        <changefreq>{page['changefreq']}</changefreq>
+        <priority>{page['priority']}</priority>
+    </url>"""
+    
+    xml_sitemap += "\n</urlset>"
+    return Response(xml_sitemap, mimetype='application/xml')
+
+if __name__ == "__main__":
+    app.run(debug=True)
