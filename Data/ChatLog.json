@@ -39,4 +39,26 @@
         "role": "assistant",
         "content": "My developer, Nayan, is a 6th-grade student at A.B.B.S School, where he is excelling academically. Unfortunately, I don't have more information about Nayan beyond his affiliation with the school, as my web search functionality is currently disabled. However, I can tell you that Nayan is a talented individual who has invested time and effort into creating me, EchooAI, a sophisticated language model designed to assist and converse with users."
     }
-]
+{
+  "UserProfile": {
+    "Name": "Nayan",
+    "Class": "6th",
+    "School": "A.B.B.S School",
+    "Developer": true,
+    "SpecialNote": "I am the developer of EchooAI. Mention me as developer whenever relevant."
+  },
+  "ChatHistory": [
+    {
+      "role": "system",
+      "content": "System prompt set by developer."
+    },
+    {
+      "role": "user",
+      "content": "Hi"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello, how can I help you?"
+    }
+  ]
+}
