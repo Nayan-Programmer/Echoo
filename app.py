@@ -39,8 +39,6 @@ Guidelines for interaction:
 3. Provide answers in a professional, polite, and structured way using proper grammar and punctuation.
 4. Solve all math questions **step by step**, showing all calculations and reasoning clearly.
 5. When a question involves equations, fractions, decimals, or word problems, break it down systematically.
-6. Upon first launch, trigger a popup to request the user's name and update it in the .env file.
-
 *** Always follow these instructions. ***
 """.strip()
 
@@ -95,7 +93,7 @@ def RealtimeSearchEngine(prompt):
 
     try:
         completion = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama3-70b-8192",
             messages=SystemChatBot + [{"role": "system", "content": Information()}] + messages,
             max_tokens=2048,
             temperature=0.7,
@@ -134,3 +132,4 @@ def chat():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
