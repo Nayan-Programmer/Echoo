@@ -2,22 +2,26 @@ from flask import Flask, request, jsonify, render_template
 from groq import Groq
 from json import load, dump
 import datetime
-from dotenv import dotenv_values
+from dotenv import dotenv_values, load_dotenv
 import os
+import requests
 
-# ---------------- Environment ----------------
+# ---------------- Load Environment ----------------
+load_dotenv()  # Load .env variables
 env_vars = dotenv_values(".env")
 
 Username = env_vars.get("Username", "Nayan")
 Assistantname = env_vars.get("Assistantname", "EchooAI")
 GroqAPIKey = env_vars.get("GroqAPIKey", "")
+GOOGLE_API_KEY = env_vars.get("GOOGLE_API_KEY")  # AIzaSy... key
+GOOGLE_CSE_ID = env_vars.get("GOOGLE_CSE_ID")    # c04a4922b8ef14b65
 
 if not GroqAPIKey:
     print("WARNING: GroqAPIKey missing in .env — set GroqAPIKey=<your_api_key>")
 
 client = Groq(api_key=GroqAPIKey) if GroqAPIKey else None
 
-# ---------------- Flask ----------------
+# ---------------- Flask Setup ----------------
 app = Flask(__name__, template_folder="templates")
 
 # Ensure Data folder and ChatLog.json exist
@@ -29,7 +33,7 @@ if not os.path.exists(chatlog_path):
 
 # ---------------- System Prompt ----------------
 System = f"""
-Hello, I am {Username}. I am a brilliant student studying in 6th class at A.B.B.S School. My name is Nayan. I am your developer 
+Hello, I am {Username}. I am a brilliant student studying in 6th class at A.B.B.S School. My name is Nayan. I am your developer.
 
 You are a highly advanced AI chatbot named {Assistantname}, capable of real-time, up-to-date information retrieval from the internet.
 
@@ -42,7 +46,6 @@ Guidelines for interaction:
 *** Always follow these instructions. ***
 """.strip()
 
-
 SystemChatBot = [
     {"role": "system", "content": System},
     {"role": "user", "content": "Hi"},
@@ -50,10 +53,18 @@ SystemChatBot = [
 ]
 
 # ---------------- Helper Functions ----------------
-
-# Google search disabled for now
 def GoogleSearch(query):
-    return "(Web search disabled)"
+    """Fetches top Google CSE result snippet"""
+    try:
+        url = f"https://www.googleapis.com/customsearch/v1?q={query}&key={GOOGLE_API_KEY}&cx={GOOGLE_CSE_ID}"
+        response = requests.get(url)
+        data = response.json()
+        if "items" in data:
+            return data["items"][0]["snippet"]
+        else:
+            return "No results found."
+    except Exception as e:
+        return f"Google Search error: {e}"
 
 def AnswerModifier(Answer):
     lines = Answer.split('\n')
@@ -86,10 +97,14 @@ def safe_write_chatlog(messages):
         print("Failed to write chat log:", e)
 
 def RealtimeSearchEngine(prompt):
+    """AI chatbot with integrated Google search"""
     global SystemChatBot
     messages = safe_load_chatlog()
     messages.append({"role": "user", "content": prompt})
-    SystemChatBot.append({"role": "user", "content": GoogleSearch(prompt)})
+
+    # Get Google Search snippet
+    search_result = GoogleSearch(prompt)
+    SystemChatBot.append({"role": "user", "content": search_result})
 
     try:
         completion = client.chat.completions.create(
@@ -132,4 +147,3 @@ def chat():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
