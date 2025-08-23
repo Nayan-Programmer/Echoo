@@ -4,3 +4,4 @@ groq
 google-search
 python-dotenv
 gunicorn
+requests
