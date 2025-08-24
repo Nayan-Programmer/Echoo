@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EchooAI Dashboard</title>
+  <title>EchooAI</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-neutral-950 text-white flex min-h-screen">
@@ -12,73 +12,99 @@
   <aside class="w-64 bg-neutral-900 border-r border-neutral-800 p-4 flex flex-col">
     <h2 class="text-lg font-bold mb-4">My Chats</h2>
 
-    <!-- Search -->
-    <input type="text" placeholder="Search" 
-           class="w-full mb-4 p-2 rounded-lg bg-neutral-800 text-sm placeholder-gray-400 focus:outline-none"/>
-
-    <!-- Folders -->
-    <div class="mb-6">
-      <h3 class="text-sm uppercase text-gray-400 mb-2">Folders</h3>
-      <ul class="space-y-2">
-        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700">📂 Work chats</li>
-        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700">📂 Life chats</li>
-        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700">📂 Projects chats</li>
-        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700">📂 Clients chats</li>
-      </ul>
-    </div>
-
     <!-- Chats -->
-    <div class="flex-1">
-      <h3 class="text-sm uppercase text-gray-400 mb-2">Chats</h3>
-      <ul class="space-y-2">
-        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700">
+    <div class="flex-1 overflow-y-auto">
+      <ul id="chatList" class="space-y-2">
+        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700" data-chat="trip">
           ✈️ Plan a 3-day trip
         </li>
-        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700">
+        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700" data-chat="loyalty">
           💡 Ideas for loyalty program
         </li>
-        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700">
+        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700" data-chat="gift">
           🎁 Help me pick a gift
         </li>
       </ul>
     </div>
 
-    <!-- New chat button -->
     <button class="mt-4 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg font-semibold">
       ➕ New chat
     </button>
   </aside>
 
   <!-- Main Chat Area -->
-  <main class="flex-1 flex flex-col items-center justify-center p-8">
+  <main class="flex-1 flex flex-col p-8">
     
-    <!-- Center Card -->
-    <div class="bg-neutral-900 p-8 rounded-2xl shadow-xl max-w-lg w-full text-center">
-      <h1 class="text-2xl font-bold mb-2">How can I help you today?</h1>
-      <p class="text-gray-400 text-sm mb-6">
-        Ask me anything, from smart prompts to media analysis — EchooAI has your back.
-      </p>
-
-      <!-- Feature Cards -->
-      <div class="grid grid-cols-3 gap-3 mb-6">
-        <div class="bg-neutral-800 p-4 rounded-xl text-sm hover:bg-neutral-700 cursor-pointer">
-          📑 <br> Saved Prompts
-        </div>
-        <div class="bg-neutral-800 p-4 rounded-xl text-sm hover:bg-neutral-700 cursor-pointer">
-          🎥 <br> Media Types
-        </div>
-        <div class="bg-neutral-800 p-4 rounded-xl text-sm hover:bg-neutral-700 cursor-pointer">
-          🌍 <br> Multilingual
-        </div>
+    <!-- Chat Box -->
+    <div class="bg-neutral-900 p-6 rounded-2xl shadow-xl flex-1 flex flex-col">
+      <div id="chatWindow" class="flex-1 overflow-y-auto mb-4">
+        <p class="text-gray-400 text-center mt-10">Select a chat or start a new one...</p>
       </div>
 
-      <!-- Search Bar -->
+      <!-- Input -->
       <div class="flex items-center bg-neutral-800 rounded-2xl p-2">
-        <input type="text" placeholder="Send a message..." 
+        <input id="messageInput" type="text" placeholder="Send a message..." 
                class="flex-1 bg-transparent px-3 py-2 focus:outline-none"/>
-        <button class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-xl">➤</button>
+        <button id="sendBtn" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-xl">➤</button>
       </div>
     </div>
   </main>
+
+  <script>
+    const chatWindow = document.getElementById('chatWindow');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const chatList = document.getElementById('chatList');
+
+    // Dummy chats
+    const chats = {
+      trip: ["Hi! Let's plan your 3-day trip.", "Where do you want to go?"],
+      loyalty: ["We can brainstorm loyalty ideas!", "Do you want points, tiers, or both?"],
+      gift: ["Sure! Who's the gift for?", "What's their favorite hobby?"]
+    };
+
+    // Load chat when sidebar clicked
+    chatList.querySelectorAll('li').forEach(li => {
+      li.addEventListener('click', () => {
+        const key = li.dataset.chat;
+        chatWindow.innerHTML = '';
+        chats[key].forEach(msg => {
+          const p = document.createElement('p');
+          p.textContent = msg;
+          p.className = 'bg-neutral-800 p-2 rounded-lg mb-2 max-w-xs';
+          chatWindow.appendChild(p);
+        });
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      });
+    });
+
+    // Send message function
+    function sendMessage() {
+      const msg = messageInput.value.trim();
+      if(!msg) return;
+
+      const p = document.createElement('p');
+      p.textContent = msg;
+      p.className = 'bg-emerald-600 text-black p-2 rounded-lg mb-2 max-w-xs self-end';
+      chatWindow.appendChild(p);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+
+      messageInput.value = '';
+
+      // Simulate EchooAI reply
+      setTimeout(() => {
+        const reply = document.createElement('p');
+        reply.textContent = "EchooAI: " + msg.split('').reverse().join('');
+        reply.className = 'bg-neutral-800 p-2 rounded-lg mb-2 max-w-xs';
+        chatWindow.appendChild(reply);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }, 500);
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', e => {
+      if(e.key === 'Enter') sendMessage();
+    });
+  </script>
 </body>
 </html>
