@@ -69,4 +69,138 @@
     #messageInput:focus {background:rgba(255,255,255,0.15);box-shadow:0 0 0 2px var(--primary-500);}
     .send-btn {background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);border:none;border-radius:var(--radius);padding:.75rem;color:white;cursor:pointer;transition:all .2s ease;box-shadow:0 4px 15px rgba(0,0,0,0.2);flex-shrink:0;}
     .send-btn:hover:not(:disabled) {box-shadow:0 6px 20px rgba(0,0,0,0.3);transform:scale(1.05);}
-    .send-btn:disabled {opacity:.5;cursor:not-allowed;transform:no
+    .send-btn:disabled {opacity:.5;cursor:not-allowed;transform:none;}
+    .footer {background:var(--glass-dark-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--glass-dark-border);margin-top:auto;}
+    .footer-content {max-width:64rem;margin:0 auto;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;font-size:.875rem;color:#9ca3af;}
+    .footer-left {display:flex;align-items:center;gap:1rem;}
+    .separator {width:.25rem;height:.25rem;background:#6b7280;border-radius:50%;}
+    .footer-link {color:#9ca3af;text-decoration:none;transition:color .2s ease;}
+    .footer-link:hover {color:var(--primary-500);}
+    .footer-right {display:flex;align-items:center;gap:.5rem;}
+    .status-indicator {width:.5rem;height:.5rem;background:var(--emerald-500);border-radius:50%;animation:pulse 2s infinite;}
+    .status-text {color:var(--emerald-500);}
+    @keyframes fadeIn {0%{opacity:0;transform:translateY(10px);}100%{opacity:1;transform:translateY(0);}}
+    @keyframes slideUp {0%{transform:translateY(100%);}100%{transform:translateY(0);}}
+    @keyframes pulse {0%,100%{opacity:1;}50%{opacity:0.5;}}
+</style>
+</head>
+<body>
+<div class="app">
+    <div class="background-gradient"></div>
+    <div class="background-overlay"></div>
+
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-img">
+                </div>
+                <div class="logo-text">
+                    <h1>EchooAI</h1>
+                    <p>Premium Chatbot</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="header-btn">Settings</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="welcome-screen" id="welcomeScreen">
+            <div class="welcome-content">
+                <div class="welcome-logo">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="welcome-logo-img">
+                </div>
+                <h2 class="welcome-title">Welcome to EchooAI</h2>
+                <p class="welcome-description">Your AI assistant for everything. Click below to start chatting!</p>
+                <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
+            </div>
+        </div>
+
+        <div class="chat-area" id="chatArea" style="display:none;">
+            <div class="messages-container" id="messagesContainer"></div>
+            <div class="message-input-container">
+                <div class="message-input-wrapper">
+                    <div class="input-area">
+                        <textarea id="messageInput" placeholder="Type your message..."></textarea>
+                        <button class="send-btn" onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-left">
+                <span>&copy; 2025 EchooAI</span>
+                <div class="separator"></div>
+                <a href="#" class="footer-link">Privacy</a>
+            </div>
+            <div class="footer-right">
+                <div class="status-indicator"></div>
+                <span class="status-text">Online</span>
+            </div>
+        </div>
+    </footer>
+</div>
+
+<script>
+function startChat(){
+    document.getElementById('welcomeScreen').style.display='none';
+    document.getElementById('chatArea').style.display='flex';
+}
+
+async function sendMessage(){
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+    if(!text) return;
+
+    const container = document.getElementById('messagesContainer');
+
+    const userMessage = document.createElement('div');
+    userMessage.className='message user';
+    userMessage.innerHTML = `
+        <div class="message-content">
+            <div class="message-avatar user-avatar">U</div>
+            <div class="message-bubble user"><div class="message-text">${text}</div></div>
+        </div>`;
+    container.appendChild(userMessage);
+    input.value='';
+    container.scrollTop=container.scrollHeight;
+
+    try{
+        const response = await fetch("/chat", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({message:text})
+        });
+        const data = await response.json();
+        const aiText = data.reply;
+
+        const aiMessage = document.createElement('div');
+        aiMessage.className='message ai';
+        aiMessage.innerHTML = `
+            <div class="message-content">
+                <div class="message-avatar ai-avatar">AI</div>
+                <div class="message-bubble ai"><div class="message-text">${aiText}</div></div>
+            </div>`;
+        container.appendChild(aiMessage);
+        container.scrollTop=container.scrollHeight;
+    } catch(err){
+        console.error(err);
+        const errorMessage = document.createElement('div');
+        errorMessage.className='message ai';
+        errorMessage.innerHTML = `
+            <div class="message-content">
+                <div class="message-avatar ai-avatar">AI</div>
+                <div class="message-bubble ai"><div class="message-text">Error contacting AI server.</div></div>
+            </div>`;
+        container.appendChild(errorMessage);
+        container.scrollTop=container.scrollHeight;
+    }
+}
+</script>
+</body>
+</html>
