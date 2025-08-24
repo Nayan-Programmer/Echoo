@@ -87,7 +87,7 @@
         <div class="header-content">
             <div class="logo-section">
                 <div class="logo-icon">
-                    <img src="logo.png" alt="Logo" class="logo-img"
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
                 </div>
                 <div class="logo-text">
                     <h1>EchooAI</h1>
@@ -104,10 +104,10 @@
         <div class="welcome-screen" id="welcomeScreen">
             <div class="welcome-content">
                 <div class="welcome-logo">
-                    <img src="logo.png" class="welcome-logo-img" alt="Logo">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
                 </div>
                 <h2 class="welcome-title">Welcome to EchooAI</h2>
-                <p class="welcome-description">Your premium AI assistant for everything. Click below to start chatting!</p>
+                <p class="welcome-description">Your AI assistant for everything. Click below to start chatting!</p>
                 <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
             </div>
         </div>
