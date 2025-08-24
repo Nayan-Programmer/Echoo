@@ -1,18 +1,18 @@
 from flask import Flask, request, jsonify, render_template
 from sympy import sympify, solve, simplify, pretty
 from dotenv import dotenv_values
-import openai
+from groq import Groq
 import requests, os
 
 # ---------------- Load ENV ----------------
 env = dotenv_values(".env")
-Username = env.get("Username",)
+Username = env.get("Username", "Nayan")
 AssistantName = env.get("AssistantName", "EchooAI")
-OpenAIKey = env.get("OpenAIKey", "")
+GroqAPIKey = env.get("GroqAPIKey", "")
 GoogleAPIKey = env.get("GoogleAPIKey", "")
 GoogleCSEID = env.get("GoogleCSEID", "")
 
-openai.api_key = OpenAIKey
+client = Groq(api_key=GroqAPIKey)
 app = Flask(__name__, template_folder="templates")
 
 # ---------------- Math Solver ----------------
@@ -53,19 +53,19 @@ def RealtimeEngine(prompt):
         query = prompt.replace("search:", "").strip()
         return GoogleSearch(query)
 
-    # 3. OpenAI LLM (default)
+    # 3. Groq LLM (default)
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",   # ✅ OpenAI smartest + cheap model
+        response = client.chat.completions.create(
+            model="llama3-70b-8192",   # ✅ Groq ka sabse powerful model
             messages=[
                 {"role": "system", "content": f"You are {AssistantName}, an AI built by {Username}. Always respond politely and clearly."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=500
         )
-        return response.choices[0].message["content"]
+        return response.choices[0].message.content
     except Exception as e:
-        return f"OpenAI backend error: {e}"
+        return f"Groq backend error: {e}"
 
 # ---------------- Routes ----------------
 @app.route("/", methods=["GET"])
