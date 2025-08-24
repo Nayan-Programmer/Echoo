@@ -56,7 +56,7 @@ def RealtimeEngine(prompt):
         response = client.chat.completions.create(
             model="llama3-70b-8192",
             messages=[
-                {"role": "system", "content": f"You are {AssistantName}, an AI built by {Username}."},
+                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName} if someone asks about your developer this is infornmation {FullInfornmation}."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=500
@@ -82,5 +82,6 @@ def chat():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
 
 
