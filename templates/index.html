@@ -1,143 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EchooAI Chat</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* Scrollbar styling */
-    #chatWindow::-webkit-scrollbar {
-      width: 6px;
-    }
-    #chatWindow::-webkit-scrollbar-thumb {
-      background-color: #4ade80;
-      border-radius: 10px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echooai - Premium AI Assistant</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-neutral-950 text-white flex min-h-screen">
+<body>
+    <div class="app">
+        <!-- Background -->
+        <div class="background-gradient"></div>
+        <div class="background-overlay"></div>
+        
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <img src="attached_assets/Screenshot 2025-08-15 202627_1756031174076.png" alt="Echooai Logo" class="logo-img">
+                    </div>
+                    <div class="logo-text">
+                      <h1>Echooai</h>
+                    </div>
+                </div>
+                
+                <div class="header-actions">
+                    <button class="header-btn" id="clearChat" data-testid="button-clear-chat">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                    <button class="header-btn" data-testid="button-settings">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
 
-  <!-- Sidebar -->
-  <aside class="w-72 bg-neutral-900 border-r border-neutral-800 p-5 flex flex-col">
-    <h1 class="text-2xl font-bold mb-6 text-emerald-500">EchooAI</h1>
-    
-    <!-- New Chat Button -->
-    <button id="newChatBtn" class="mb-6 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105">
-      ➕ New Chat
-    </button>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Welcome Screen -->
+            <div class="welcome-screen" id="welcomeScreen">
+                <div class="welcome-content">
+                    <div class="welcome-logo">
+                        <img src="attached_assets/Screenshot 2025-08-15 202627_1756031174076.png" alt="Echooai Logo" class="welcome-logo-img">
+                    </div>
+                    
+                    <h2 class="welcome-title">Welcome to Echooai</h2>
+                    <p class="welcome-description">
+                        Your AI assistant ready to help with any question or task. Start a conversation and experience intelligent assistance like never before.
+                    </p>
+                    
+                    <!-- Quick Start Options -->
+                    <div class="quick-start-grid">
+                        <button class="quick-start-card" data-testid="button-ask-questions">
+                            <div class="quick-start-icon">
+                                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <h3>Ask Questions</h3>
+                            <p>Get instant answers to any question</p>
+                        </button>
+                        
+                        <button class="quick-start-card" data-testid="button-creative-tasks">
+                            <div class="quick-start-icon">
+                                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a1 1 0 01-1-1V9a1 1 0 011-1h1a2 2 0 100-4H4a1 1 0 01-1-1V4a1 1 0 011-1h3a1 1 0 001-1z" />
+                                </svg>
+                            </div>
+                            <h3>Creative Tasks</h3>
+                            <p>Generate content and ideas</p>
+                        </button>
+                        
+                        <button class="quick-start-card" data-testid="button-problem-solving">
+                            <div class="quick-start-icon">
+                                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                                </svg>
+                            </div>
+                            <h3>Problem Solving</h3>
+                            <p>Analyze and solve complex problems</p>
+                        </button>
+                    </div>
+                    
+                    <button class="start-chat-btn" id="startChatBtn" data-testid="button-start-conversation">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        Start Conversation
+                    </button>
+                </div>
+            </div>
 
-    <!-- Chat List -->
-    <div class="flex-1 overflow-y-auto">
-      <ul id="chatList" class="space-y-2">
-        <!-- Chat items populated dynamically -->
-      </ul>
+            <!-- Chat Area -->
+            <div class="chat-area" id="chatArea" style="display: none;">
+                <div class="messages-container" id="messagesContainer" data-testid="messages-container">
+                    <!-- Messages will be added here dynamically -->
+                </div>
+                
+                <!-- Typing Indicator -->
+                <div class="typing-indicator" id="typingIndicator" style="display: none;" data-testid="typing-indicator">
+                    <div class="ai-avatar">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <div class="typing-bubble">
+                        <div class="typing-dots">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Input -->
+            <div class="message-input-container" id="messageInputContainer" style="display: none;">
+                <div class="message-input-wrapper">
+                    <div class="input-area">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="Type your message... Press Shift+Enter for new line"
+                            rows="1"
+                            data-testid="input-message"
+                        ></textarea>
+                        <button class="attach-btn" data-testid="button-attach">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                        </button>
+                    </div>
+                    <button class="send-btn" id="sendBtn" data-testid="button-send">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button class="quick-action-btn" data-testid="button-quick-creative">✨ Get creative ideas</button>
+                    <button class="quick-action-btn" data-testid="button-quick-analyze">📊 Analyze data</button>
+                    <button class="quick-action-btn" data-testid="button-quick-research">🔍 Research topics</button>
+                    <button class="quick-action-btn" data-testid="button-quick-problems">💡 Solve problems</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-left">
+                    <span>© 2025 Echooai</span>
+                    <span class="separator"></span>
+                    <a href="#" class="footer-link">Privacy</a>
+                    <span class="separator"></span>
+                    <a href="#" class="footer-link">Terms</a>
+                </div>
+                <div class="footer-right">
+                    <div class="status-indicator"></div>
+                    <span class="status-text">AI Online</span>
+                </div>
+            </div>
+        </footer>
     </div>
-  </aside>
 
-  <!-- Main Chat Area -->
-  <main class="flex-1 flex flex-col p-6">
-    <div class="flex-1 flex flex-col bg-neutral-900 rounded-2xl shadow-xl p-6 overflow-hidden">
-      
-      <!-- Chat Messages -->
-      <div id="chatWindow" class="flex-1 overflow-y-auto mb-4 space-y-3 px-2">
-        <p class="text-gray-400 text-center mt-10">Start a new chat or select one from the sidebar.</p>
-      </div>
-
-      <!-- Input Area -->
-      <div class="flex items-center bg-neutral-800 rounded-2xl p-2">
-        <input id="messageInput" type="text" placeholder="Type your message..."
-               class="flex-1 bg-transparent px-3 py-2 focus:outline-none rounded-2xl"/>
-        <button id="sendBtn" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-xl ml-2 transition-all duration-200 hover:scale-105">➤</button>
-      </div>
-    </div>
-  </main>
-
-  <script>
-    const chatList = document.getElementById('chatList');
-    const chatWindow = document.getElementById('chatWindow');
-    const messageInput = document.getElementById('messageInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const newChatBtn = document.getElementById('newChatBtn');
-
-    let chats = []; // Store chats
-    let activeChatIndex = -1;
-
-    function renderChatList() {
-      chatList.innerHTML = '';
-      chats.forEach((c, idx) => {
-        const li = document.createElement('li');
-        li.textContent = c.title || `Chat ${idx+1}`;
-        li.className = 'px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700 transition-colors duration-200';
-        li.addEventListener('click', () => {
-          activeChatIndex = idx;
-          renderChatWindow();
-        });
-        chatList.appendChild(li);
-      });
-    }
-
-    function renderChatWindow() {
-      chatWindow.innerHTML = '';
-      if(activeChatIndex === -1) {
-        chatWindow.innerHTML = `<p class="text-gray-400 text-center mt-10">Start a new chat or select one from the sidebar.</p>`;
-        return;
-      }
-      const msgs = chats[activeChatIndex].messages;
-      msgs.forEach(msg => {
-        const p = document.createElement('p');
-        p.textContent = msg.content;
-        p.className = msg.role === 'user' 
-          ? 'bg-emerald-600 text-black p-2 rounded-lg max-w-xs self-end'
-          : 'bg-neutral-800 p-2 rounded-lg max-w-xs';
-        chatWindow.appendChild(p);
-      });
-      chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
-
-    function sendMessage() {
-      const text = messageInput.value.trim();
-      if(!text) return;
-
-      if(activeChatIndex === -1) {
-        chats.push({ title: `Chat ${chats.length+1}`, messages: [] });
-        activeChatIndex = chats.length - 1;
-        renderChatList();
-      }
-
-      // Add user message
-      chats[activeChatIndex].messages.push({ role: 'user', content: text });
-      renderChatWindow();
-      messageInput.value = '';
-
-      // Send to Flask backend
-      fetch('/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text })
-      })
-      .then(res => res.json())
-      .then(data => {
-        chats[activeChatIndex].messages.push({ role: 'ai', content: data.reply });
-        renderChatWindow();
-      })
-      .catch(err => {
-        chats[activeChatIndex].messages.push({ role: 'ai', content: 'Error: Could not reach server.' });
-        renderChatWindow();
-      });
-    }
-
-    sendBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keypress', e => {
-      if(e.key === 'Enter') sendMessage();
-    });
-
-    newChatBtn.addEventListener('click', () => {
-      chats.push({ title: `Chat ${chats.length+1}`, messages: [] });
-      activeChatIndex = chats.length - 1;
-      renderChatList();
-      renderChatWindow();
-    });
-  </script>
+    <script src="script.js"></script>
 </body>
 </html>
