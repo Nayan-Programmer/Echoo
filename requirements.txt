@@ -5,3 +5,4 @@ google-search
 python-dotenv
 gunicorn
 requests
+sympy
