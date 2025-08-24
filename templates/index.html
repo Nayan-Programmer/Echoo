@@ -3,107 +3,140 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EchooAI</title>
+  <title>EchooAI Chat</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Scrollbar styling */
+    #chatWindow::-webkit-scrollbar {
+      width: 6px;
+    }
+    #chatWindow::-webkit-scrollbar-thumb {
+      background-color: #4ade80;
+      border-radius: 10px;
+    }
+  </style>
 </head>
 <body class="bg-neutral-950 text-white flex min-h-screen">
 
   <!-- Sidebar -->
-  <aside class="w-64 bg-neutral-900 border-r border-neutral-800 p-4 flex flex-col">
-    <h2 class="text-lg font-bold mb-4">My Chats</h2>
+  <aside class="w-72 bg-neutral-900 border-r border-neutral-800 p-5 flex flex-col">
+    <h1 class="text-2xl font-bold mb-6 text-emerald-500">EchooAI</h1>
+    
+    <!-- New Chat Button -->
+    <button id="newChatBtn" class="mb-6 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg font-semibold transition-all duration-200 hover:scale-105">
+      ➕ New Chat
+    </button>
 
-    <!-- Chats -->
+    <!-- Chat List -->
     <div class="flex-1 overflow-y-auto">
       <ul id="chatList" class="space-y-2">
-        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700" data-chat="trip">
-          ✈️ Plan a 3-day trip
-        </li>
-        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700" data-chat="loyalty">
-          💡 Ideas for loyalty program
-        </li>
-        <li class="px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700" data-chat="gift">
-          🎁 Help me pick a gift
-        </li>
+        <!-- Chat items populated dynamically -->
       </ul>
     </div>
-
-    <button class="mt-4 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded-lg font-semibold">
-      ➕ New chat
-    </button>
   </aside>
 
   <!-- Main Chat Area -->
-  <main class="flex-1 flex flex-col p-8">
-    
-    <!-- Chat Box -->
-    <div class="bg-neutral-900 p-6 rounded-2xl shadow-xl flex-1 flex flex-col">
-      <div id="chatWindow" class="flex-1 overflow-y-auto mb-4">
-        <p class="text-gray-400 text-center mt-10">Select a chat or start a new one...</p>
+  <main class="flex-1 flex flex-col p-6">
+    <div class="flex-1 flex flex-col bg-neutral-900 rounded-2xl shadow-xl p-6 overflow-hidden">
+      
+      <!-- Chat Messages -->
+      <div id="chatWindow" class="flex-1 overflow-y-auto mb-4 space-y-3 px-2">
+        <p class="text-gray-400 text-center mt-10">Start a new chat or select one from the sidebar.</p>
       </div>
 
-      <!-- Input -->
+      <!-- Input Area -->
       <div class="flex items-center bg-neutral-800 rounded-2xl p-2">
-        <input id="messageInput" type="text" placeholder="Send a message..." 
-               class="flex-1 bg-transparent px-3 py-2 focus:outline-none"/>
-        <button id="sendBtn" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-xl">➤</button>
+        <input id="messageInput" type="text" placeholder="Type your message..."
+               class="flex-1 bg-transparent px-3 py-2 focus:outline-none rounded-2xl"/>
+        <button id="sendBtn" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-xl ml-2 transition-all duration-200 hover:scale-105">➤</button>
       </div>
     </div>
   </main>
 
   <script>
+    const chatList = document.getElementById('chatList');
     const chatWindow = document.getElementById('chatWindow');
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
-    const chatList = document.getElementById('chatList');
+    const newChatBtn = document.getElementById('newChatBtn');
 
-    // Dummy chats
-    const chats = {
-      trip: ["Hi! Let's plan your 3-day trip.", "Where do you want to go?"],
-      loyalty: ["We can brainstorm loyalty ideas!", "Do you want points, tiers, or both?"],
-      gift: ["Sure! Who's the gift for?", "What's their favorite hobby?"]
-    };
+    let chats = []; // Store chats
+    let activeChatIndex = -1;
 
-    // Load chat when sidebar clicked
-    chatList.querySelectorAll('li').forEach(li => {
-      li.addEventListener('click', () => {
-        const key = li.dataset.chat;
-        chatWindow.innerHTML = '';
-        chats[key].forEach(msg => {
-          const p = document.createElement('p');
-          p.textContent = msg;
-          p.className = 'bg-neutral-800 p-2 rounded-lg mb-2 max-w-xs';
-          chatWindow.appendChild(p);
+    function renderChatList() {
+      chatList.innerHTML = '';
+      chats.forEach((c, idx) => {
+        const li = document.createElement('li');
+        li.textContent = c.title || `Chat ${idx+1}`;
+        li.className = 'px-3 py-2 rounded-lg bg-neutral-800 cursor-pointer hover:bg-neutral-700 transition-colors duration-200';
+        li.addEventListener('click', () => {
+          activeChatIndex = idx;
+          renderChatWindow();
         });
-        chatWindow.scrollTop = chatWindow.scrollHeight;
+        chatList.appendChild(li);
       });
-    });
+    }
 
-    // Send message function
-    function sendMessage() {
-      const msg = messageInput.value.trim();
-      if(!msg) return;
-
-      const p = document.createElement('p');
-      p.textContent = msg;
-      p.className = 'bg-emerald-600 text-black p-2 rounded-lg mb-2 max-w-xs self-end';
-      chatWindow.appendChild(p);
+    function renderChatWindow() {
+      chatWindow.innerHTML = '';
+      if(activeChatIndex === -1) {
+        chatWindow.innerHTML = `<p class="text-gray-400 text-center mt-10">Start a new chat or select one from the sidebar.</p>`;
+        return;
+      }
+      const msgs = chats[activeChatIndex].messages;
+      msgs.forEach(msg => {
+        const p = document.createElement('p');
+        p.textContent = msg.content;
+        p.className = msg.role === 'user' 
+          ? 'bg-emerald-600 text-black p-2 rounded-lg max-w-xs self-end'
+          : 'bg-neutral-800 p-2 rounded-lg max-w-xs';
+        chatWindow.appendChild(p);
+      });
       chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
 
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if(!text) return;
+
+      if(activeChatIndex === -1) {
+        chats.push({ title: `Chat ${chats.length+1}`, messages: [] });
+        activeChatIndex = chats.length - 1;
+        renderChatList();
+      }
+
+      // Add user message
+      chats[activeChatIndex].messages.push({ role: 'user', content: text });
+      renderChatWindow();
       messageInput.value = '';
 
-      // Simulate EchooAI reply
-      setTimeout(() => {
-        const reply = document.createElement('p');
-        reply.textContent = "EchooAI: " + msg.split('').reverse().join('');
-        reply.className = 'bg-neutral-800 p-2 rounded-lg mb-2 max-w-xs';
-        chatWindow.appendChild(reply);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-      }, 500);
+      // Send to Flask backend
+      fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      })
+      .then(res => res.json())
+      .then(data => {
+        chats[activeChatIndex].messages.push({ role: 'ai', content: data.reply });
+        renderChatWindow();
+      })
+      .catch(err => {
+        chats[activeChatIndex].messages.push({ role: 'ai', content: 'Error: Could not reach server.' });
+        renderChatWindow();
+      });
     }
 
     sendBtn.addEventListener('click', sendMessage);
     messageInput.addEventListener('keypress', e => {
       if(e.key === 'Enter') sendMessage();
+    });
+
+    newChatBtn.addEventListener('click', () => {
+      chats.push({ title: `Chat ${chats.length+1}`, messages: [] });
+      activeChatIndex = chats.length - 1;
+      renderChatList();
+      renderChatWindow();
     });
   </script>
 </body>
