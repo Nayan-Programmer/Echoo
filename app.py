@@ -10,8 +10,8 @@ AssistantName = env.get("AssistantName", "EchooAI")
 GroqAPIKey = env.get("GroqAPIKey", "")
 GoogleAPIKey = env.get("GoogleAPIKey", "")
 GoogleCSEID = env.get("GoogleCSEID", "")
-DeveloperName= env.get("DeveloperName,"")
-
+DeveloperName = env.get("DeveloperName,"")
+FullInfornmation = env.get("FullInfornmation","")
 
 client = Groq(api_key=GroqAPIKey)
 app = Flask(__name__, template_folder="templates")
@@ -82,4 +82,5 @@ def chat():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
 
