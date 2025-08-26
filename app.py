@@ -16,8 +16,6 @@ GoogleAPIKey = env.get("GoogleAPIKey", "")
 GoogleCSEID = env.get("GoogleCSEID", "")
 DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
-GoogleClientID = env.get("GoogleClientID", "")
-GoogleClientSecret = env.get("GoogleClientSecret", "")
 
 # Initialize Groq client
 client = Groq(api_key=GroqAPIKey)
@@ -28,8 +26,8 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecret")
 
 # Google OAuth setup
 google_bp = make_google_blueprint(
-    client_id=GoogleClientID,
-    client_secret=GoogleClientSecret,
+    client_id=env.get("GoogleClientID"),
+    client_secret=env.get("GoogleClientSecret"),
     scope=["profile", "email"],
     redirect_to="home"
 )
