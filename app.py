@@ -24,7 +24,7 @@ client = Groq(api_key=GroqAPIKey)
 
 # Flask app
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecret")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
 
 # Google OAuth setup
 google_bp = make_google_blueprint(
@@ -64,11 +64,11 @@ def GoogleSearch(query):
 
 # --- AI Engine ---
 def RealtimeEngine(prompt):
-    # Math queries
+    # Handle math queries
     if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
         return solve_math(prompt)
 
-    # Google search
+    # Handle Google search
     if prompt.lower().startswith("search:"):
         query = prompt.replace("search:", "").strip()
         return GoogleSearch(query)
@@ -82,7 +82,7 @@ def RealtimeEngine(prompt):
         response = client.chat.completions.create(
             model="llama3-70b-8192",
             messages=[
-                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}."},
+                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}. Follow this prompt: Be talkative, humorous, Gen Z style, practical, innovative, and playful."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=500
