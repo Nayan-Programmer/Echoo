@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory, redirect, url_for, session
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from sympy import sympify, solve, simplify, pretty
 from dotenv import dotenv_values
 from groq import Groq
@@ -31,7 +31,7 @@ google_bp = make_google_blueprint(
     client_id=GoogleClientID,
     client_secret=GoogleClientSecret,
     scope=["profile", "email"],
-    redirect_url="https://echooai.in/login/google/authorized"
+    redirect_to="home"
 )
 app.register_blueprint(google_bp, url_prefix="/login")
 
@@ -116,15 +116,6 @@ def logout():
     session.clear()
     return redirect(url_for("home"))
 
-# Serve static logo if needed
-@app.route('/logo/<path:filename>')
-def logo(filename):
-    return send_from_directory('static', filename)
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
-
-
-
