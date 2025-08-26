@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from sympy import sympify, solve, simplify, pretty
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 from groq import Groq
 import requests, os
 
@@ -8,23 +8,23 @@ import requests, os
 from flask_dance.contrib.google import make_google_blueprint, google
 
 # Load environment variables
-load_dotenv()
-Username = os.getenv("Username", "User")
-AssistantName = os.getenv("AssistantName", "EchooAI")
-GroqAPIKey = os.getenv("GroqAPIKey", "")
-GoogleAPIKey = os.getenv("GoogleAPIKey", "")
-GoogleCSEID = os.getenv("GoogleCSEID", "")
-DeveloperName = os.getenv("DeveloperName", "Nayan")
-FullInformation = os.getenv("FullInformation", "")
-GoogleClientID = os.getenv("GoogleClientID", "")
-GoogleClientSecret = os.getenv("GoogleClientSecret", "")
+env = dotenv_values(".env")
+Username = env.get("Username", "User")
+AssistantName = env.get("AssistantName", "EchooAI")
+GroqAPIKey = env.get("GroqAPIKey", "")
+GoogleAPIKey = env.get("GoogleAPIKey", "")
+GoogleCSEID = env.get("GoogleCSEID", "")
+DeveloperName = env.get("DeveloperName", "Nayan")
+FullInformation = env.get("FullInformation", "")
+GoogleClientID = env.get("GoogleClientID", "")
+GoogleClientSecret = env.get("GoogleClientSecret", "")
 
 # Initialize Groq client
 client = Groq(api_key=GroqAPIKey)
 
 # Flask app
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecret")
 
 # Google OAuth setup
 google_bp = make_google_blueprint(
@@ -34,7 +34,6 @@ google_bp = make_google_blueprint(
     redirect_to="home"
 )
 app.register_blueprint(google_bp, url_prefix="/login")
-
 
 # --- Math Solver ---
 def solve_math(query):
@@ -50,7 +49,6 @@ def solve_math(query):
     except Exception as e:
         return f"Math Error: {e}"
 
-
 # --- Google Search ---
 def GoogleSearch(query):
     try:
@@ -64,8 +62,7 @@ def GoogleSearch(query):
     except Exception as e:
         return f"(Search Error: {e})"
 
-
-# --- AI Engine (Groq) ---
+# --- AI Engine ---
 def RealtimeEngine(prompt):
     # Math queries
     if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
@@ -95,7 +92,6 @@ def RealtimeEngine(prompt):
         print(e)
         return f"Groq backend error: {e}"
 
-
 # --- Routes ---
 @app.route("/", methods=["GET"])
 def home():
@@ -106,7 +102,6 @@ def home():
             user_info = resp.json()
     return render_template("index.html", assistant_name=AssistantName, user=user_info)
 
-
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
@@ -116,12 +111,10 @@ def chat():
     reply = RealtimeEngine(user_prompt)
     return jsonify({"reply": reply})
 
-
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("home"))
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
