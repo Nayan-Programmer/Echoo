@@ -31,7 +31,7 @@ google_bp = make_google_blueprint(
     client_id=GoogleClientID,
     client_secret=GoogleClientSecret,
     scope=["profile", "email"],
-    redirect_to="home"
+    redirect_url="https://echooai.in/login/google/authorized"
 )
 
 app.register_blueprint(google_bp, url_prefix="/login")
@@ -125,4 +125,5 @@ def logo(filename):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
 
