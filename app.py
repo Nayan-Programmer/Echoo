@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from sympy import sympify, solve, simplify, pretty
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 from groq import Groq
 import requests, os
 
@@ -8,28 +8,23 @@ import requests, os
 from flask_dance.contrib.google import make_google_blueprint, google
 
 # Load environment variables
-env = dotenv_values(".env")
-Username = env.get("Username", "User")
-AssistantName = env.get("AssistantName", "EchooAI")
-GroqAPIKey = env.get("GroqAPIKey", "")
-GoogleAPIKey = env.get("GoogleAPIKey", "")
-GoogleCSEID = env.get("GoogleCSEID", "")
-DeveloperName = env.get("DeveloperName", "Nayan")
-FullInformation = env.get("FullInformation", "")
-GoogleClientID = env.get("GoogleClientID", "")
-GoogleClientSecret = env.get("GoogleClientSecret", "")
-FLASK_SECRET_KEY = env.get("FLASK_SECRET_KEY", "supersecret")
+load_dotenv()
+Username = os.getenv("Username", "User")
+AssistantName = os.getenv("AssistantName", "EchooAI")
+GroqAPIKey = os.getenv("GroqAPIKey", "")
+GoogleAPIKey = os.getenv("GoogleAPIKey", "")
+GoogleCSEID = os.getenv("GoogleCSEID", "")
+DeveloperName = os.getenv("DeveloperName", "Nayan")
+FullInformation = os.getenv("FullInformation", "")
+GoogleClientID = os.getenv("GoogleClientID", "")
+GoogleClientSecret = os.getenv("GoogleClientSecret", "")
 
-# Initialize Groq client (safe check)
-try:
-    client = Groq(api_key=GroqAPIKey) if GroqAPIKey else None
-except Exception as e:
-    print(f"Groq init error: {e}")
-    client = None
+# Initialize Groq client
+client = Groq(api_key=GroqAPIKey)
 
-# Initialize Flask
+# Flask app
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = FLASK_SECRET_KEY
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
 
 # Google OAuth setup
 google_bp = make_google_blueprint(
@@ -39,6 +34,7 @@ google_bp = make_google_blueprint(
     redirect_to="home"
 )
 app.register_blueprint(google_bp, url_prefix="/login")
+
 
 # --- Math Solver ---
 def solve_math(query):
@@ -54,10 +50,9 @@ def solve_math(query):
     except Exception as e:
         return f"Math Error: {e}"
 
+
 # --- Google Search ---
 def GoogleSearch(query):
-    if not GoogleAPIKey or not GoogleCSEID:
-        return "Google Search not configured."
     try:
         url = "https://www.googleapis.com/customsearch/v1"
         params = {"q": query, "key": GoogleAPIKey, "cx": GoogleCSEID}
@@ -69,7 +64,8 @@ def GoogleSearch(query):
     except Exception as e:
         return f"(Search Error: {e})"
 
-# --- AI Engine ---
+
+# --- AI Engine (Groq) ---
 def RealtimeEngine(prompt):
     # Math queries
     if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
@@ -85,54 +81,48 @@ def RealtimeEngine(prompt):
         return f"My developer is {DeveloperName}. {FullInformation}"
 
     # Groq AI
-    if client:
-        try:
-            response = client.chat.completions.create(
-                model="llama3-70b-8192",
-                messages=[
-                    {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=500
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            print(f"Groq error: {e}")
-            return f"Groq backend error: {e}"
-    else:
-        return "AI backend not configured."
+    try:
+        response = client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=[
+                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=500
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(e)
+        return f"Groq backend error: {e}"
+
 
 # --- Routes ---
 @app.route("/", methods=["GET"])
 def home():
     user_info = None
-    try:
-        if google.authorized:
-            resp = google.get("/oauth2/v2/userinfo")
-            if resp.ok:
-                user_info = resp.json()
-    except Exception as e:
-        print(f"Google OAuth error: {e}")
+    if google.authorized:
+        resp = google.get("/oauth2/v2/userinfo")
+        if resp.ok:
+            user_info = resp.json()
     return render_template("index.html", assistant_name=AssistantName, user=user_info)
+
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    try:
-        data = request.get_json()
-        user_prompt = data.get("message", "")
-        if not user_prompt:
-            return jsonify({"reply": "Please enter a message."}), 400
-        reply = RealtimeEngine(user_prompt)
-        return jsonify({"reply": reply})
-    except Exception as e:
-        return jsonify({"reply": f"Server error: {e}"}), 500
+    data = request.get_json()
+    user_prompt = data.get("message", "")
+    if not user_prompt:
+        return jsonify({"reply": "Please enter a message."}), 400
+    reply = RealtimeEngine(user_prompt)
+    return jsonify({"reply": reply})
+
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("home"))
 
-# --- Run Flask ---
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
