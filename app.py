@@ -18,13 +18,18 @@ DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
 GoogleClientID = env.get("GoogleClientID", "")
 GoogleClientSecret = env.get("GoogleClientSecret", "")
+FLASK_SECRET_KEY = env.get("FLASK_SECRET_KEY", "supersecret")
 
-# Initialize Groq client
-client = Groq(api_key=GroqAPIKey)
+# Initialize Groq client (safe check)
+try:
+    client = Groq(api_key=GroqAPIKey) if GroqAPIKey else None
+except Exception as e:
+    print(f"Groq init error: {e}")
+    client = None
 
-# Flask app
+# Initialize Flask
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
+app.secret_key = FLASK_SECRET_KEY
 
 # Google OAuth setup
 google_bp = make_google_blueprint(
@@ -51,6 +56,8 @@ def solve_math(query):
 
 # --- Google Search ---
 def GoogleSearch(query):
+    if not GoogleAPIKey or not GoogleCSEID:
+        return "Google Search not configured."
     try:
         url = "https://www.googleapis.com/customsearch/v1"
         params = {"q": query, "key": GoogleAPIKey, "cx": GoogleCSEID}
@@ -64,11 +71,11 @@ def GoogleSearch(query):
 
 # --- AI Engine ---
 def RealtimeEngine(prompt):
-    # Handle math queries
+    # Math queries
     if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
         return solve_math(prompt)
 
-    # Handle Google search
+    # Google search
     if prompt.lower().startswith("search:"):
         query = prompt.replace("search:", "").strip()
         return GoogleSearch(query)
@@ -78,44 +85,54 @@ def RealtimeEngine(prompt):
         return f"My developer is {DeveloperName}. {FullInformation}"
 
     # Groq AI
-    try:
-        response = client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[
-                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}. Follow this prompt: Be talkative, humorous, Gen Z style, practical, innovative, and playful."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=500
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        print(e)
-        return f"Groq backend error: {e}"
+    if client:
+        try:
+            response = client.chat.completions.create(
+                model="llama3-70b-8192",
+                messages=[
+                    {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=500
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Groq error: {e}")
+            return f"Groq backend error: {e}"
+    else:
+        return "AI backend not configured."
 
 # --- Routes ---
 @app.route("/", methods=["GET"])
 def home():
     user_info = None
-    if google.authorized:
-        resp = google.get("/oauth2/v2/userinfo")
-        if resp.ok:
-            user_info = resp.json()
+    try:
+        if google.authorized:
+            resp = google.get("/oauth2/v2/userinfo")
+            if resp.ok:
+                user_info = resp.json()
+    except Exception as e:
+        print(f"Google OAuth error: {e}")
     return render_template("index.html", assistant_name=AssistantName, user=user_info)
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.get_json()
-    user_prompt = data.get("message", "")
-    if not user_prompt:
-        return jsonify({"reply": "Please enter a message."}), 400
-    reply = RealtimeEngine(user_prompt)
-    return jsonify({"reply": reply})
+    try:
+        data = request.get_json()
+        user_prompt = data.get("message", "")
+        if not user_prompt:
+            return jsonify({"reply": "Please enter a message."}), 400
+        reply = RealtimeEngine(user_prompt)
+        return jsonify({"reply": reply})
+    except Exception as e:
+        return jsonify({"reply": f"Server error: {e}"}), 500
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("home"))
 
+# --- Run Flask ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
