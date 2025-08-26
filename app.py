@@ -1,8 +1,11 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, redirect, url_for, session
 from sympy import sympify, solve, simplify, pretty
 from dotenv import dotenv_values
 from groq import Groq
 import requests, os
+
+# Google OAuth
+from flask_dance.contrib.google import make_google_blueprint, google
 
 # Load environment variables
 env = dotenv_values(".env")
@@ -13,10 +16,24 @@ GoogleAPIKey = env.get("GoogleAPIKey", "")
 GoogleCSEID = env.get("GoogleCSEID", "")
 DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
+GoogleClientID = env.get("GoogleClientID", "")
+GoogleClientSecret = env.get("GoogleClientSecret", "")
 
 # Initialize Groq client
 client = Groq(api_key=GroqAPIKey)
+
+# Flask app
 app = Flask(__name__, template_folder="templates", static_folder="static")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecret")
+
+# Google OAuth setup
+google_bp = make_google_blueprint(
+    client_id=GoogleClientID,
+    client_secret=GoogleClientSecret,
+    scope=["profile", "email"],
+    redirect_to="home"
+)
+app.register_blueprint(google_bp, url_prefix="/login")
 
 # --- Math Solver ---
 def solve_math(query):
@@ -78,7 +95,12 @@ def RealtimeEngine(prompt):
 # --- Routes ---
 @app.route("/", methods=["GET"])
 def home():
-    return render_template("index.html", assistant_name=AssistantName)
+    user_info = None
+    if google.authorized:
+        resp = google.get("/oauth2/v2/userinfo")
+        if resp.ok:
+            user_info = resp.json()
+    return render_template("index.html", assistant_name=AssistantName, user=user_info)
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -88,6 +110,11 @@ def chat():
         return jsonify({"reply": "Please enter a message."}), 400
     reply = RealtimeEngine(user_prompt)
     return jsonify({"reply": reply})
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("home"))
 
 # Serve static logo if needed
 @app.route('/logo/<path:filename>')
