@@ -80,7 +80,7 @@
     .status-indicator {width:.5rem;height:.5rem;background:var(--emerald-500);border-radius:50%;animation:pulse 2s infinite;}
     .status-text {color:var(--emerald-500);}
     @keyframes fadeIn {0%{opacity:0;transform:translateY(10px);}100%{opacity:1;transform:translateY(0);}}
-    @keyframes slideUp {0%{transform:translateY(100%);}100%{transform:translateY(0);}}
+    @keyframes slideUp {0%{transform:translateY(100%);}100%{transform:translateY(0);} }
     @keyframes pulse {0%,100%{opacity:1;}50%{opacity:0.5;}}
 </style>
 </head>
@@ -101,7 +101,8 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button class="header-btn">Settings</button>
+                <!-- Google Login Button -->
+                <a href="{{ url_for('google.login') }}"><button class="header-btn">Login with Google</button></a>
             </div>
         </div>
     </header>
@@ -170,37 +171,31 @@ async function sendMessage(){
     input.value='';
     container.scrollTop=container.scrollHeight;
 
-    try{
-        const response = await fetch("/chat", {
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({message:text})
-        });
-        const data = await response.json();
-        const aiText = data.reply;
-
-        const aiMessage = document.createElement('div');
-        aiMessage.className='message ai';
-        aiMessage.innerHTML = `
-            <div class="message-content">
-                <div class="message-avatar ai-avatar">AI</div>
-                <div class="message-bubble ai"><div class="message-text">${aiText}</div></div>
-            </div>`;
-        container.appendChild(aiMessage);
-        container.scrollTop=container.scrollHeight;
-    } catch(err){
-        console.error(err);
-        const errorMessage = document.createElement('div');
-        errorMessage.className='message ai';
-        errorMessage.innerHTML = `
-            <div class="message-content">
-                <div class="message-avatar ai-avatar">AI</div>
-                <div class="message-bubble ai"><div class="message-text">Error contacting AI server.</div></div>
-            </div>`;
-        container.appendChild(errorMessage);
-        container.scrollTop=container.scrollHeight;
+    {
+      const response = await fetch('/chat', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({message: text})
+      });
+      const data = await response.json();
+      const aiMessage = document.createElement('div');
+      aiMessage.className = 'message ai';
+      aiMessage.innerHTML = `
+          <div class="message-content">
+        <div class="message-avatar ai-avatar">AI</div>
+        <div class="message-bubble ai"><div class="message-text">${data.reply}</div></div>
+          </div>`;
+      container.appendChild(aiMessage);
+      container.scrollTop = container.scrollHeight;
+        } catch (e) {
+      const errorMsg = document.createElement('div');
+      errorMsg.className = 'message ai';
+      errorMsg.innerHTML = `
+          <div class="message-content">
+        <div class="message-avatar ai-avatar">AI</div>
+        <div class="message-bubble ai"><div class="message-text">Sorry, something went wrong.</div></div>
+          </div>`;
+      container.appendChild(errorMsg);
+      container.scrollTop = container.scrollHeight;
+        }
     }
-}
-</script>
-</body>
-</html>
