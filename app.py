@@ -1,11 +1,8 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from sympy import sympify, solve, simplify, pretty
 from dotenv import dotenv_values
 from groq import Groq
 import requests, os
-
-# Google OAuth
-from flask_dance.contrib.google import make_google_blueprint, google
 
 # Load environment variables
 env = dotenv_values(".env")
@@ -19,19 +16,7 @@ FullInformation = env.get("FullInformation", "")
 
 # Initialize Groq client
 client = Groq(api_key=GroqAPIKey)
-
-# Flask app
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecret")
-
-# Google OAuth setup
-google_bp = make_google_blueprint(
-    client_id=env.get("GoogleClientID"),
-    client_secret=env.get("GoogleClientSecret"),
-    scope=["profile", "email"],
-    redirect_to="home"
-)
-app.register_blueprint(google_bp, url_prefix="/login")
 
 # --- Math Solver ---
 def solve_math(query):
@@ -93,12 +78,7 @@ def RealtimeEngine(prompt):
 # --- Routes ---
 @app.route("/", methods=["GET"])
 def home():
-    user_info = None
-    if google.authorized:
-        resp = google.get("/oauth2/v2/userinfo")
-        if resp.ok:
-            user_info = resp.json()
-    return render_template("index.html", assistant_name=AssistantName, user=user_info)
+    return render_template("index.html", assistant_name=AssistantName)
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -109,10 +89,10 @@ def chat():
     reply = RealtimeEngine(user_prompt)
     return jsonify({"reply": reply})
 
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("home"))
+# Serve static logo if needed
+@app.route('/logo/<path:filename>')
+def logo(filename):
+    return send_from_directory('static', filename)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
