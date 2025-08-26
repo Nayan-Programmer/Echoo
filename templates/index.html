@@ -16,11 +16,9 @@ body {font-family:'Inter', system-ui, sans-serif;color:#fff;background:#000;over
   --glass-dark-border:rgba(148,163,184,0.1);
   --radius:1.3rem;
 }
-/* Backgrounds */
 .background-gradient {position:fixed;inset:0;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);opacity:0.9;z-index:-2;}
 .background-overlay {position:fixed;inset:0;background-image:url('https://images.unsplash.com/photo-1635070041078-e363dbe005cb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080');background-size:cover;background-position:center;opacity:0.05;z-index:-1;}
 .app {min-height:100vh;display:flex;flex-direction:column;position:relative;}
-/* Header */
 .header {background:var(--glass-dark-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--glass-dark-border);z-index:100;}
 .header-content {max-width:1536px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:4rem;}
 .logo-section {display:flex;align-items:center;gap:.75rem;}
@@ -30,7 +28,6 @@ body {font-family:'Inter', system-ui, sans-serif;color:#fff;background:#000;over
 .header-actions {display:flex;align-items:center;gap:.75rem;}
 .header-btn {padding:.5rem;border-radius:.5rem;background:var(--glass-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--glass-dark-border);color:white;cursor:pointer;transition:all .2s ease;}
 .header-btn:hover {background:rgba(255,255,255,0.2);transform:translateY(-1px);}
-/* Main */
 .main-content {flex:1;display:flex;flex-direction:column;max-width:64rem;margin:0 auto;width:100%;padding:1.5rem;gap:1.5rem;}
 .welcome-screen {flex:1;display:flex;align-items:center;justify-content:center;animation:fadeIn .5s ease-in-out;}
 .welcome-content {text-align:center;max-width:32rem;margin:0 auto;}
@@ -40,7 +37,7 @@ body {font-family:'Inter', system-ui, sans-serif;color:#fff;background:#000;over
 .welcome-description {font-size:1.25rem;color:#d1d5db;margin-bottom:2rem;line-height:1.75;}
 .start-chat-btn {display:inline-flex;align-items:center;gap:.5rem;padding:1rem 2rem;background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);color:white;font-weight:600;border:none;border-radius:var(--radius);cursor:pointer;transition:all .3s ease;box-shadow:0 10px 25px rgba(0,0,0,0.2);}
 .start-chat-btn:hover {box-shadow:0 20px 40px rgba(0,0,0,0.3);transform:scale(1.05);}
-.chat-area {flex:1;display:flex;flex-direction:column;animation:fadeIn .5s ease-in-out; display:none;}
+.chat-area {flex:1;display:flex;flex-direction:column;animation:fadeIn .5s ease-in-out;}
 .messages-container {flex:1;background:var(--glass-dark-bg);backdrop-filter:blur(10px);border:1px solid var(--glass-dark-border);border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;min-height:400px;max-height:60vh;overflow-y:auto;}
 .messages-container::-webkit-scrollbar {display:none;}
 .message {display:flex;margin-bottom:1rem;animation:fadeIn .5s ease-in-out;}
@@ -107,16 +104,20 @@ body {font-family:'Inter', system-ui, sans-serif;color:#fff;background:#000;over
           <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="welcome-logo-img">
         </div>
         <h2 class="welcome-title">Welcome to EchooAI</h2>
-        <p class="welcome-description">Log in with Google to start chatting!</p>
-        <!-- Google Login Button -->
-        <a href="{{ url_for('google_login') }}" class="start-chat-btn" style="display:flex;align-items:center;justify-content:center;">
-          <img src="{{ url_for('static', filename='google-logo.png') }}" alt="Google" style="width:20px;height:20px;margin-right:8px;">
-          Sign in with Google
-        </a>
+        <p class="welcome-description">Your AI assistant for everything. Click below to start chatting!</p>
+
+        {% if user %}
+          <p>Hello, {{ user['name'] }}!</p>
+          <a href="{{ url_for('logout') }}" class="start-chat-btn">Logout</a>
+          <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
+        {% else %}
+          <a href="{{ url_for('google.login') }}" class="start-chat-btn">Login with Google</a>
+        {% endif %}
+
       </div>
     </div>
 
-    <div class="chat-area" id="chatArea">
+    <div class="chat-area" id="chatArea" style="display:none;">
       <div class="messages-container" id="messagesContainer"></div>
       <div class="message-input-container">
         <div class="message-input-wrapper">
@@ -145,6 +146,11 @@ body {font-family:'Inter', system-ui, sans-serif;color:#fff;background:#000;over
 </div>
 
 <script>
+function startChat(){
+    document.getElementById('welcomeScreen').style.display='none';
+    document.getElementById('chatArea').style.display='flex';
+}
+
 async function sendMessage(){
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
