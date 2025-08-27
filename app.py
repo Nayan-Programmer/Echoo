@@ -5,7 +5,7 @@ from dotenv import dotenv_values
 from groq import Groq
 import os, json
 
-# --- Load environment variables ---
+# --- Env variables ---
 env = dotenv_values(".env")
 AssistantName = env.get("AssistantName","EchooAI")
 GroqAPIKey = env.get("GroqAPIKey","")
@@ -14,20 +14,20 @@ FullInformation = env.get("FullInformation","")
 
 client = Groq(api_key=GroqAPIKey)
 
-# --- Flask Setup ---
+# --- Flask setup ---
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY","supersecretkey")
 
-# --- Google OAuth Setup ---
+# --- Google OAuth setup ---
 blueprint = make_google_blueprint(
     client_id=os.environ.get("GOOGLE_CLIENT_ID"),
     client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
-    scope=["profile", "email"],
+    scope=["profile","email"],
     redirect_url="/google_login"
 )
 app.register_blueprint(blueprint, url_prefix="/login")
 
-# --- Math Solver ---
+# --- Math solver ---
 def solve_math(query):
     try:
         expr = sympify(query)
@@ -41,7 +41,7 @@ def solve_math(query):
     except Exception as e:
         return f"Math Error: {e}"
 
-# --- Groq AI Engine ---
+# --- Groq AI ---
 def RealtimeEngine(prompt):
     if any(op in prompt for op in ["+","-","*","/","=","solve","integrate","derivative","diff","factor","limit"]):
         return solve_math(prompt)
@@ -64,9 +64,8 @@ def RealtimeEngine(prompt):
 # --- Routes ---
 @app.route("/")
 def home():
-    if 'user' in session:
-        return redirect(url_for("chat_page"))
-    return render_template("index.html", user=None, assistant_name=AssistantName)
+    user = session.get("user")
+    return render_template("index.html", user=user, assistant_name=AssistantName)
 
 @app.route("/google_login")
 def google_login():
@@ -75,35 +74,28 @@ def google_login():
     resp = google.get("/oauth2/v2/userinfo")
     if not resp.ok:
         return redirect(url_for("home"))
-    session['user'] = resp.json()
-    return redirect(url_for("chat_page"))
-
-@app.route("/chat_page")
-def chat_page():
-    if 'user' not in session:
-        return redirect(url_for("home"))
-    return render_template("index.html", user=session['user'], assistant_name=AssistantName)
+    session['user'] = resp.json()  # Store user info
+    return redirect(url_for("home"))
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.get_json()
-    user_prompt = data.get("message","")
+    user_prompt = request.get_json().get("message","")
     if not user_prompt:
         return jsonify({"reply":"Please enter a message."}),400
 
     reply = RealtimeEngine(user_prompt)
 
-    # Save chat log
+    # save chat per user email or guest
     try:
         os.makedirs("chats", exist_ok=True)
         user_file = f"chats/{session['user']['email'] if 'user' in session else 'guest'}.json"
-        chat_log = {"user":user_prompt,"assistant":reply}
+        log = {"user":user_prompt,"assistant":reply}
         if os.path.exists(user_file):
-            existing = json.load(open(user_file,"r"))
-            existing.append(chat_log)
-            json.dump(existing, open(user_file,"w"), indent=2)
+            data = json.load(open(user_file,"r"))
+            data.append(log)
+            json.dump(data, open(user_file,"w"), indent=2)
         else:
-            json.dump([chat_log], open(user_file,"w"), indent=2)
+            json.dump([log], open(user_file,"w"), indent=2)
     except Exception as e:
         print("Error saving chat:", e)
 
@@ -115,5 +107,4 @@ def logout():
     return redirect(url_for("home"))
 
 if __name__=="__main__":
-    port = int(os.environ.get("PORT",5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT",5000)), debug=True)
