@@ -1,37 +1,24 @@
-from flask import Flask, render_template, redirect, url_for, session, request, jsonify
-from flask_dance.contrib.google import make_google_blueprint, google
+from flask import Flask, request, jsonify, render_template, send_from_directory
+from sympy import sympify, solve, simplify, pretty
 from dotenv import dotenv_values
 from groq import Groq
-from sympy import sympify, simplify, solve, pretty
-import os, json
+import requests, os
 
-# Load .env
+# Load environment variables
 env = dotenv_values(".env")
+Username = env.get("Username", "User")
 AssistantName = env.get("AssistantName", "EchooAI")
+GroqAPIKey = env.get("GroqAPIKey", "")
+GoogleAPIKey = env.get("GoogleAPIKey", "")
+GoogleCSEID = env.get("GoogleCSEID", "")
 DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
-GroqAPIKey = env.get("GroqAPIKey", "")
-FLASK_SECRET_KEY = env.get("FLASK_SECRET_KEY", "secretkey")
-GOOGLE_CLIENT_ID = env.get("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = env.get("GOOGLE_CLIENT_SECRET", "")
 
-# Flask app
-app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = FLASK_SECRET_KEY
-
-# Google OAuth Blueprint
-google_bp = make_google_blueprint(
-    client_id=GOOGLE_CLIENT_ID,
-    client_secret=GOOGLE_CLIENT_SECRET,
-    scope=["openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"],
-    redirect_url="/google_login_callback"
-)
-app.register_blueprint(google_bp, url_prefix="/login")
-
-# Groq client
+# Initialize Groq client
 client = Groq(api_key=GroqAPIKey)
+app = Flask(__name__, template_folder="templates", static_folder="static")
 
-# --- Math solver ---
+# --- Math Solver ---
 def solve_math(query):
     try:
         expr = sympify(query)
@@ -45,18 +32,41 @@ def solve_math(query):
     except Exception as e:
         return f"Math Error: {e}"
 
-# --- AI engine ---
+# --- Google Search ---
+def GoogleSearch(query):
+    try:
+        url = "https://www.googleapis.com/customsearch/v1"
+        params = {"q": query, "key": GoogleAPIKey, "cx": GoogleCSEID}
+        r = requests.get(url, params=params)
+        data = r.json()
+        if "items" in data:
+            return "\n".join([item["snippet"] for item in data["items"][:3]])
+        return "No results found."
+    except Exception as e:
+        return f"(Search Error: {e})"
+
+# --- AI Engine ---
 def RealtimeEngine(prompt):
+    # Math queries
     if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
         return solve_math(prompt)
-    if "who is your developer" in prompt.lower():
+
+    # Google search
+    if prompt.lower().startswith("search:"):
+        query = prompt.replace("search:", "").strip()
+        return GoogleSearch(query)
+
+    # Developer info
+    if "who is your developer" in prompt.lower() or "who created you" in prompt.lower():
         return f"My developer is {DeveloperName}. {FullInformation}"
+
+    # Groq AI
     try:
         response = client.chat.completions.create(
             model="llama3-70b-8192",
             messages=[
-                {"role":"system","content":f"You are {AssistantName}, an AI built by {DeveloperName}. Talkative, witty, professional, Gen Z style."},
-                {"role":"user","content":prompt}
+                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}."},
+                {"role": "user", "content": prompt}
             ],
             max_tokens=500
         )
@@ -66,41 +76,24 @@ def RealtimeEngine(prompt):
         return f"Groq backend error: {e}"
 
 # --- Routes ---
-@app.route("/")
+@app.route("/", methods=["GET"])
 def home():
-    if not google.authorized:
-        return render_template("index.html", login_url=url_for("google.login"), assistant_name=AssistantName)
-    resp = google.get("/oauth2/v2/userinfo")
-    if resp.ok:
-        user_info = resp.json()
-        session['user'] = user_info
-        return render_template("index.html", login_url=None, user=user_info, assistant_name=AssistantName)
-    return redirect(url_for("google.login"))
+    return render_template("index.html", assistant_name=AssistantName)
 
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
-    user_prompt = data.get("message","")
+    user_prompt = data.get("message", "")
     if not user_prompt:
-        return jsonify({"reply":"Please enter a message."}),400
-
+        return jsonify({"reply": "Please enter a message."}), 400
     reply = RealtimeEngine(user_prompt)
+    return jsonify({"reply": reply})
 
-    # Save chat
-    try:
-        os.makedirs("chats", exist_ok=True)
-        filename = "chats/guest.json"
-        chat_log = {"user":user_prompt,"assistant":reply}
-        if os.path.exists(filename):
-            existing = json.load(open(filename,"r"))
-            existing.append(chat_log)
-            json.dump(existing, open(filename,"w"), indent=2)
-        else:
-            json.dump([chat_log], open(filename,"w"), indent=2)
-    except Exception as e:
-        print("Error saving chat:", e)
+# Serve static logo if needed
+@app.route('/logo/<path:filename>')
+def logo(filename):
+    return send_from_directory('static', filename)
 
-    return jsonify({"reply":reply})
-
-if __name__=="__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT",5000)), debug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
