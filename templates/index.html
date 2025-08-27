@@ -1,90 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EchooAI - AI Assistant</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-    * {margin:0;padding:0;box-sizing:border-box;}
-    body {font-family:'Inter', system-ui, sans-serif;color:#fff;background:#000;overflow-x:hidden;}
-    :root {
-        --primary-500:hsl(172.4, 82.8%, 36.1%);
-        --emerald-500:hsl(160, 84.1%, 39.4%);
-        --glass-bg:rgba(255,255,255,0.1);
-        --glass-dark-bg:rgba(30,41,59,0.8);
-        --glass-dark-border:rgba(148,163,184,0.1);
-        --radius:1.3rem;
-    }
-    /* Keep all your previous CSS exactly the same */
-</style>
-</head>
-<body>
-<div class="app">
-    <div class="background-gradient"></div>
-    <div class="background-overlay"></div>
-
-    <header class="header">
-        <div class="header-content">
-            <div class="logo-section">
-                <div class="logo-icon">
-                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-img">
-                </div>
-                <div class="logo-text">
-                    <h1>EchooAI</h1>
-                    <p>Premium Chatbot</p>
-                </div>
-            </div>
-            <div class="header-actions">
-                <button class="header-btn" id="googleSignInBtn">Sign in with Google</button>
-                <button class="header-btn">Settings</button>
-            </div>
-        </div>
-    </header>
-
-    <main class="main-content">
-        <div class="welcome-screen" id="welcomeScreen">
-            <div class="welcome-content">
-                <div class="welcome-logo">
-                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="welcome-logo-img">
-                </div>
-                <h2 class="welcome-title">Welcome to EchooAI</h2>
-                <p class="welcome-description">Your AI assistant for everything. Click below to start chatting!</p>
-                <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
-            </div>
-        </div>
-
-        <div class="chat-area" id="chatArea" style="display:none;">
-            <div class="messages-container" id="messagesContainer"></div>
-            <div class="message-input-container">
-                <div class="message-input-wrapper">
-                    <div class="input-area">
-                        <textarea id="messageInput" placeholder="Type your message..."></textarea>
-                        <button class="send-btn" onclick="sendMessage()">Send</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-left">
-                <span>&copy; 2025 EchooAI</span>
-                <div class="separator"></div>
-                <a href="#" class="footer-link">Privacy</a>
-            </div>
-            <div class="footer-right">
-                <div class="status-indicator"></div>
-                <span class="status-text">Online</span>
-            </div>
-        </div>
-    </footer>
+<!-- Bas header-actions me button aur script add hue hain, baaki UI same hai -->
+<div class="header-actions">
+    <button class="header-btn" id="googleSignInBtn">Sign in with Google</button>
+    <button class="header-btn">Settings</button>
 </div>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
-// Store logged in user
 let currentUser = null;
 
 function startChat(){
@@ -142,10 +63,10 @@ async function sendMessage(){
     }
 }
 
-// --- Google Sign-In ---
+// Google Sign-In
 window.onload = function() {
     google.accounts.id.initialize({
-        client_id: "271512740425-7i1eemcfj0g5ksitn4uu70n11jvc0pou.apps.googleusercontent.com",
+        client_id: "YOUR_GOOGLE_CLIENT_ID",
         callback: handleCredentialResponse
     });
     google.accounts.id.renderButton(
@@ -155,12 +76,9 @@ window.onload = function() {
 };
 
 function handleCredentialResponse(response){
-    // Decode JWT to get user email or name (basic)
     const payload = JSON.parse(atob(response.credential.split('.')[1]));
     currentUser = payload.name || payload.email || "User";
     alert(`Logged in as ${currentUser}`);
     document.getElementById("googleSignInBtn").style.display="none";
 }
 </script>
-</body>
-</html>
