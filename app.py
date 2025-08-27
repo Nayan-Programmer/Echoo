@@ -13,7 +13,7 @@ GoogleCSEID = env.get("GoogleCSEID", "")
 DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
 
-# Personality Prompt
+# AI Personality Prompt
 prompt_text = (
     "Be talkative and conversational. Use quick and clever humor when appropriate. "
     "Tell it like it is; don't sugar-coat responses. Use an encouraging tone. "
@@ -50,7 +50,8 @@ init_db()
 def save_chat(user, email, message, reply):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute("INSERT INTO chats (user, email, message, reply) VALUES (?, ?, ?, ?)", (user, email, message, reply))
+    c.execute("INSERT INTO chats (user, email, message, reply) VALUES (?, ?, ?, ?)",
+              (user, email, message, reply))
     conn.commit()
     conn.close()
 
@@ -92,7 +93,8 @@ def GoogleSearch(query):
 # ---------------- AI ENGINE ----------------
 def RealtimeEngine(prompt):
     # Math queries
-    if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
+    if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate",
+                                   "derivative", "diff", "factor", "limit"]):
         return solve_math(prompt)
 
     # Google search
