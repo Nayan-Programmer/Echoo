@@ -2,9 +2,9 @@ from flask import Flask, render_template, request, jsonify
 from sympy import sympify, simplify, solve, pretty
 from dotenv import dotenv_values
 from groq import Groq
-import os, json, requests
+import os, json
 
-# Load env
+# Load environment variables
 env = dotenv_values(".env")
 AssistantName = env.get("AssistantName","EchooAI")
 GroqAPIKey = env.get("GroqAPIKey","")
@@ -14,6 +14,7 @@ FullInformation = env.get("FullInformation","")
 client = Groq(api_key=GroqAPIKey)
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
+# --- Math Solver ---
 def solve_math(query):
     try:
         expr = sympify(query)
@@ -27,6 +28,7 @@ def solve_math(query):
     except Exception as e:
         return f"Math Error: {e}"
 
+# --- AI Engine ---
 def RealtimeEngine(prompt):
     if any(op in prompt for op in ["+","-","*","/","=","solve","integrate","derivative","diff","factor","limit"]):
         return solve_math(prompt)
@@ -36,7 +38,7 @@ def RealtimeEngine(prompt):
         response = client.chat.completions.create(
             model="llama3-70b-8192",
             messages=[
-                {"role":"system","content":f"You are {AssistantName}, AI built by {DeveloperName}"},
+                {"role":"system","content":f"You are {AssistantName}, an AI built by {DeveloperName}. Follow prompt: talkative, witty, professional, Gen Z style."},
                 {"role":"user","content":prompt}
             ],
             max_tokens=500
@@ -46,6 +48,7 @@ def RealtimeEngine(prompt):
         print(e)
         return f"Groq backend error: {e}"
 
+# --- Routes ---
 @app.route("/")
 def home():
     return render_template("index.html", assistant_name=AssistantName)
@@ -54,16 +57,15 @@ def home():
 def chat():
     data = request.get_json()
     user_prompt = data.get("message","")
-    user_name = data.get("user_name","Guest")
-    user_email = data.get("user_email","guest@example.com")
     if not user_prompt:
         return jsonify({"reply":"Please enter a message."}),400
+
     reply = RealtimeEngine(user_prompt)
 
-    # Save chat per user
+    # Save previous chat in user-specific file (optional: guest.json if no login)
     try:
-        filename = f"chats/{user_email.replace('@','_at_')}.json"
         os.makedirs("chats", exist_ok=True)
+        filename = "chats/guest.json"
         chat_log = {"user":user_prompt,"assistant":reply}
         if os.path.exists(filename):
             existing = json.load(open(filename,"r"))
