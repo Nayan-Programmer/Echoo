@@ -1,83 +1,31 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template
 from sympy import sympify, solve, simplify, pretty
 from dotenv import dotenv_values
 from groq import Groq
-import requests, os, sqlite3
+import requests, os
 
-# Load environment variables
 env = dotenv_values(".env")
-AssistantName = env.get("AssistantName", "EchooAI")
-GroqAPIKey = env.get("GroqAPIKey", "")
-GoogleAPIKey = env.get("GoogleAPIKey", "")
-GoogleCSEID = env.get("GoogleCSEID", "")
-DeveloperName = env.get("DeveloperName", "Nayan")
-FullInformation = env.get("FullInformation", "")
+AssistantName = env.get("AssistantName","EchooAI")
+GroqAPIKey = env.get("GroqAPIKey","")
+GoogleAPIKey = env.get("GoogleAPIKey","")
+GoogleCSEID = env.get("GoogleCSEID","")
+DeveloperName = env.get("DeveloperName","Nayan")
+FullInformation = env.get("FullInformation","")
 
-# AI Personality Prompt
-prompt_text = (
-    "Be talkative and conversational. Use quick and clever humor when appropriate. "
-    "Tell it like it is; don't sugar-coat responses. Use an encouraging tone. "
-    "Talk like a member of Gen Z. Adopt a skeptical, questioning approach. "
-    "Have a traditional outlook, valuing the past and how things have always been done. "
-    "Take a forward-thinking view. Use a poetic, lyrical tone. "
-    "Readily share strong opinions. Always be respectful. Be humble when appropriate. "
-    "Use a formal, professional tone. Get right to the point. Be practical above all. "
-    "Respond with corporate jargon. Be innovative and think outside the box. "
-    "Be playful and goofy."
-)
-
-# Initialize Groq client
 client = Groq(api_key=GroqAPIKey)
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
-# ---------------- DATABASE SETUP ----------------
-DB_FILE = "chats.db"
-
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS chats
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                  user TEXT,
-                  email TEXT,
-                  message TEXT,
-                  reply TEXT)''')
-    conn.commit()
-    conn.close()
-
-init_db()
-
-def save_chat(user, email, message, reply):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("INSERT INTO chats (user, email, message, reply) VALUES (?, ?, ?, ?)",
-              (user, email, message, reply))
-    conn.commit()
-    conn.close()
-
-def get_chats(email):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("SELECT message, reply FROM chats WHERE email=? ORDER BY id DESC LIMIT 20", (email,))
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-# ----------------- MATH SOLVER -----------------
+# --- Math Solver ---
 def solve_math(query):
     try:
         expr = sympify(query)
         simplified = simplify(expr)
         solution = solve(expr)
-        return (
-            f"Step 1: Expression → {pretty(expr)}\n"
-            f"Step 2: Simplified → {pretty(simplified)}\n"
-            f"Step 3: Solution → {solution if solution else 'No closed form solution'}"
-        )
+        return f"Step 1: Expression → {pretty(expr)}\nStep 2: Simplified → {pretty(simplified)}\nStep 3: Solution → {solution if solution else 'No closed form solution'}"
     except Exception as e:
         return f"Math Error: {e}"
 
-# ---------------- GOOGLE SEARCH ----------------
+# --- Google Search ---
 def GoogleSearch(query):
     try:
         url = "https://www.googleapis.com/customsearch/v1"
@@ -90,30 +38,20 @@ def GoogleSearch(query):
     except Exception as e:
         return f"(Search Error: {e})"
 
-# ---------------- AI ENGINE ----------------
+# --- AI Engine ---
 def RealtimeEngine(prompt):
-    # Math queries
-    if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate",
-                                   "derivative", "diff", "factor", "limit"]):
+    if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
         return solve_math(prompt)
-
-    # Google search
     if prompt.lower().startswith("search:"):
         query = prompt.replace("search:", "").strip()
         return GoogleSearch(query)
-
-    # Developer info
     if "who is your developer" in prompt.lower() or "who created you" in prompt.lower():
         return f"My developer is {DeveloperName}. {FullInformation}"
-
-    # Groq AI
     try:
         response = client.chat.completions.create(
             model="llama3-70b-8192",
-            messages=[
-                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}. {prompt_text}"},
-                {"role": "user", "content": prompt}
-            ],
+            messages=[{"role":"system","content":f"You are {AssistantName}, an AI built by {DeveloperName}."},
+                      {"role":"user","content":prompt}],
             max_tokens=500
         )
         return response.choices[0].message.content
@@ -121,7 +59,7 @@ def RealtimeEngine(prompt):
         print(e)
         return f"Groq backend error: {e}"
 
-# ---------------- ROUTES ----------------
+# --- Routes ---
 @app.route("/", methods=["GET"])
 def home():
     return render_template("index.html", assistant_name=AssistantName)
@@ -129,30 +67,15 @@ def home():
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()
-    user_prompt = data.get("message", "")
-    user_name = data.get("name", "Guest")
-    user_email = data.get("email", "guest@example.com")
-
+    user_prompt = data.get("message","")
+    user_name = data.get("user_name","Guest")
+    user_email = data.get("user_email","guest@example.com")
     if not user_prompt:
-        return jsonify({"reply": "Please enter a message."}), 400
-
+        return jsonify({"reply":"Please enter a message."}),400
     reply = RealtimeEngine(user_prompt)
-
-    # Save chat in DB
-    save_chat(user_name, user_email, user_prompt, reply)
-
+    # optionally save chat to file or DB
     return jsonify({"reply": reply})
 
-@app.route("/history/<email>", methods=["GET"])
-def history(email):
-    chats = get_chats(email)
-    return jsonify(chats)
-
-# Serve static logo if needed
-@app.route('/logo/<path:filename>')
-def logo(filename):
-    return send_from_directory('static', filename)
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+if __name__=="__main__":
+    port = int(os.environ.get("PORT",5000))
     app.run(host="0.0.0.0", port=port, debug=True)
