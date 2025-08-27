@@ -22,7 +22,16 @@
     .header {background:var(--glass-dark-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--glass-dark-border);z-index:100;}
     .header-content {max-width:1536px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:4rem;}
     .logo-section {display:flex;align-items:center;gap:.75rem;}
-    .logo-icon {width:1.8rem;height:1.8rem;border-radius:var(--radius);background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 25px rgba(0,0,0,0.2);}
+    .logo-icon {
+        width:1.8rem;
+        height:1.8rem;
+        border-radius:var(--radius);
+        background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        box-shadow:0 10px 25px rgba(0,0,0,0.2);
+    }
     .logo-img {width:1rem;height:1rem;border-radius:.25rem;}
     .logo-text h1 {font-size:1.25rem;font-weight:700;color:white;margin:0;}
     .header-actions {display:flex;align-items:center;gap:.75rem;}
@@ -105,13 +114,7 @@
                 </div>
                 <h2 class="welcome-title">Welcome to EchooAI</h2>
                 <p class="welcome-description">Your AI assistant for everything. Click below to start chatting!</p>
-
-                {% if login_url %}
-                <a href="{{ login_url }}" class="start-chat-btn">Login with Google</a>
-                {% else %}
                 <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
-                {% endif %}
-
             </div>
         </div>
 
