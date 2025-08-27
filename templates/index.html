@@ -6,21 +6,19 @@
 <title>EchooAI - AI Assistant</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* --- Your existing CSS (UI) goes here --- */
+/* Tumhara existing UI CSS yahan paste karo */
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div class="app">
-    <header>...<!-- Your header UI --></header>
-
+    <!-- Header & UI maintained -->
     <main class="main-content">
         <div class="welcome-screen" id="welcomeScreen">
             <div class="welcome-content">
                 <h2 class="welcome-title">Welcome to EchooAI</h2>
                 <p class="welcome-description" id="welcomeUserName">Sign in to start chatting!</p>
                 <div id="googleSignInDiv"></div>
-                <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
             </div>
         </div>
 
@@ -42,7 +40,6 @@
 let userName = "Guest";
 let userEmail = "guest@example.com";
 
-// Google login callback
 function handleCredentialResponse(response){
     const data = JSON.parse(atob(response.credential.split('.')[1]));
     userName = data.name;
@@ -52,7 +49,6 @@ function handleCredentialResponse(response){
     document.getElementById('chatArea').style.display='flex';
 }
 
-// Initialize Google button
 window.onload = function(){
     google.accounts.id.initialize({
         client_id:"271512740425-7i1eemcfj0g5ksitn4uu70n11jvc0pou.apps.googleusercontent.com",
@@ -62,11 +58,6 @@ window.onload = function(){
         document.getElementById("googleSignInDiv"),
         { theme:"outline", size:"large", type:"standard" }
     );
-}
-
-function startChat(){
-    document.getElementById('welcomeScreen').style.display='none';
-    document.getElementById('chatArea').style.display='flex';
 }
 
 async function sendMessage(){
@@ -101,9 +92,7 @@ async function sendMessage(){
         </div>`;
         container.appendChild(aiMessage);
         container.scrollTop=container.scrollHeight;
-    }catch(err){
-        console.error(err);
-    }
+    }catch(err){console.error(err);}
 }
 </script>
 </body>
