@@ -1,23 +1,19 @@
-from flask import Flask, request, jsonify, render_template
-from sympy import sympify, solve, simplify, pretty
+from flask import Flask, render_template, request, jsonify
+from sympy import sympify, simplify, solve, pretty
 from dotenv import dotenv_values
 from groq import Groq
-import requests, os, json
+import os, json, requests
 
 # Load env
 env = dotenv_values(".env")
 AssistantName = env.get("AssistantName","EchooAI")
 GroqAPIKey = env.get("GroqAPIKey","")
-GoogleAPIKey = env.get("GoogleAPIKey","")
-GoogleCSEID = env.get("GoogleCSEID","")
 DeveloperName = env.get("DeveloperName","Nayan")
 FullInformation = env.get("FullInformation","")
 
-# Initialize Groq client
 client = Groq(api_key=GroqAPIKey)
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
-# --- Math Solver ---
 def solve_math(query):
     try:
         expr = sympify(query)
@@ -31,33 +27,16 @@ def solve_math(query):
     except Exception as e:
         return f"Math Error: {e}"
 
-# --- Google Search ---
-def GoogleSearch(query):
-    try:
-        url = "https://www.googleapis.com/customsearch/v1"
-        params = {"q": query, "key": GoogleAPIKey, "cx": GoogleCSEID}
-        r = requests.get(url, params=params)
-        data = r.json()
-        if "items" in data:
-            return "\n".join([item["snippet"] for item in data["items"][:3]])
-        return "No results found."
-    except Exception as e:
-        return f"(Search Error: {e})"
-
-# --- AI Engine ---
 def RealtimeEngine(prompt):
-    if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
+    if any(op in prompt for op in ["+","-","*","/","=","solve","integrate","derivative","diff","factor","limit"]):
         return solve_math(prompt)
-    if prompt.lower().startswith("search:"):
-        query = prompt.replace("search:","").strip()
-        return GoogleSearch(query)
-    if "who is your developer" in prompt.lower() or "who created you" in prompt.lower():
+    if "who is your developer" in prompt.lower():
         return f"My developer is {DeveloperName}. {FullInformation}"
     try:
         response = client.chat.completions.create(
             model="llama3-70b-8192",
             messages=[
-                {"role":"system","content":f"You are {AssistantName}, an AI built by {DeveloperName}."},
+                {"role":"system","content":f"You are {AssistantName}, AI built by {DeveloperName}"},
                 {"role":"user","content":prompt}
             ],
             max_tokens=500
@@ -67,7 +46,6 @@ def RealtimeEngine(prompt):
         print(e)
         return f"Groq backend error: {e}"
 
-# --- Routes ---
 @app.route("/")
 def home():
     return render_template("index.html", assistant_name=AssistantName)
@@ -80,14 +58,13 @@ def chat():
     user_email = data.get("user_email","guest@example.com")
     if not user_prompt:
         return jsonify({"reply":"Please enter a message."}),400
-
     reply = RealtimeEngine(user_prompt)
 
-    # Optional: Save chat to file per user
+    # Save chat per user
     try:
         filename = f"chats/{user_email.replace('@','_at_')}.json"
         os.makedirs("chats", exist_ok=True)
-        chat_log = {"user":user_prompt, "assistant":reply}
+        chat_log = {"user":user_prompt,"assistant":reply}
         if os.path.exists(filename):
             existing = json.load(open(filename,"r"))
             existing.append(chat_log)
