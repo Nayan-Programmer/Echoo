@@ -22,16 +22,7 @@
     .header {background:var(--glass-dark-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--glass-dark-border);z-index:100;}
     .header-content {max-width:1536px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:4rem;}
     .logo-section {display:flex;align-items:center;gap:.75rem;}
-    .logo-icon {
-        width:1.8rem;
-        height:1.8rem;
-        border-radius:var(--radius);
-        background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        box-shadow:0 10px 25px rgba(0,0,0,0.2);
-    }
+    .logo-icon {width:1.8rem;height:1.8rem;border-radius:var(--radius);background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 25px rgba(0,0,0,0.2);}
     .logo-img {width:1rem;height:1rem;border-radius:.25rem;}
     .logo-text h1 {font-size:1.25rem;font-weight:700;color:white;margin:0;}
     .header-actions {display:flex;align-items:center;gap:.75rem;}
@@ -46,8 +37,6 @@
     .welcome-description {font-size:1.25rem;color:#d1d5db;margin-bottom:2rem;line-height:1.75;}
     .start-chat-btn {display:inline-flex;align-items:center;gap:.5rem;padding:1rem 2rem;background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);color:white;font-weight:600;border:none;border-radius:var(--radius);cursor:pointer;transition:all .3s ease;box-shadow:0 10px 25px rgba(0,0,0,0.2);}
     .start-chat-btn:hover {box-shadow:0 20px 40px rgba(0,0,0,0.3);transform:scale(1.05);}
-    .google-login-btn {display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;background:#4285F4;color:white;font-weight:600;border:none;border-radius:var(--radius);cursor:pointer;transition:all .3s ease;box-shadow:0 10px 25px rgba(0,0,0,0.2);margin-top:1rem;}
-    .google-login-btn:hover {box-shadow:0 15px 30px rgba(0,0,0,0.3);transform:scale(1.05);}
     .chat-area {flex:1;display:flex;flex-direction:column;animation:fadeIn .5s ease-in-out;}
     .messages-container {flex:1;background:var(--glass-dark-bg);backdrop-filter:blur(10px);border:1px solid var(--glass-dark-border);border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;min-height:400px;max-height:60vh;overflow-y:auto;}
     .messages-container::-webkit-scrollbar {display:none;}
@@ -103,30 +92,29 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button class="header-btn">Settings</button>
+                {% if user %}
+                    <a href="{{ url_for('logout') }}"><button class="header-btn">Logout</button></a>
+                {% endif %}
             </div>
         </div>
     </header>
 
     <main class="main-content">
+        {% if not user %}
         <div class="welcome-screen" id="welcomeScreen">
             <div class="welcome-content">
                 <div class="welcome-logo">
                     <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="welcome-logo-img">
                 </div>
                 <h2 class="welcome-title">Welcome to EchooAI</h2>
-                <p class="welcome-description">Your AI assistant for everything. Click below to start chatting!</p>
-                <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
-
-                <!-- Google Login Button -->
-                <button class="google-login-btn" onclick="googleLogin()">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png" alt="Google Logo" style="width:1.2rem;height:1.2rem;">
-                    Sign in with Google
-                </button>
+                <p class="welcome-description">Login with Google to start chatting!</p>
+                <a href="{{ url_for('google.login') }}">
+                    <button class="start-chat-btn">Login with Google</button>
+                </a>
             </div>
         </div>
-
-        <div class="chat-area" id="chatArea" style="display:none;">
+        {% else %}
+        <div class="chat-area" id="chatArea">
             <div class="messages-container" id="messagesContainer"></div>
             <div class="message-input-container">
                 <div class="message-input-wrapper">
@@ -137,6 +125,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </main>
 
     <footer class="footer">
@@ -155,17 +144,6 @@
 </div>
 
 <script>
-function startChat(){
-    document.getElementById('welcomeScreen').style.display='none';
-    document.getElementById('chatArea').style.display='flex';
-}
-
-// Dummy Google Login Function
-function googleLogin(){
-    alert("Google login successful! Starting chat...");
-    startChat();
-}
-
 async function sendMessage(){
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
