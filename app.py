@@ -1,30 +1,30 @@
 from flask import Flask, render_template, redirect, url_for, session, request, jsonify
 from flask_dance.contrib.google import make_google_blueprint, google
-from sympy import sympify, simplify, solve, pretty
-from dotenv import dotenv_values
+from dotenv import load_dotenv
 from groq import Groq
 import os, json
+from sympy import sympify, simplify, solve, pretty
 
-# Load env
-env = dotenv_values(".env")
-AssistantName = env.get("AssistantName","EchooAI")
-DeveloperName = env.get("DeveloperName","Nayan")
-FullInformation = env.get("FullInformation","")
-GroqAPIKey = env.get("GroqAPIKey","")
+# Load .env
+load_dotenv()
+AssistantName = os.getenv("AssistantName","EchooAI")
+GroqAPIKey = os.getenv("GroqAPIKey","")
+DeveloperName = os.getenv("DeveloperName","Nayan")
+FullInformation = os.getenv("FullInformation","")
 
 client = Groq(api_key=GroqAPIKey)
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = os.urandom(24)
+app.secret_key = os.getenv("SECRET_KEY", "supersecretkey")
 
-# --- Google OAuth ---
+# --- Google OAuth Setup ---
 google_bp = make_google_blueprint(
-    client_id=env.get("GOOGLE_CLIENT_ID"),
-    client_secret=env.get("GOOGLE_CLIENT_SECRET"),
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
     scope=["profile", "email"],
-    redirect_url="/login/google/authorized"
+    redirect_url="/google/login/callback"
 )
-app.register_blueprint(google_bp, url_prefix="/login")
+app.register_blueprint(google_bp, url_prefix="/google_login")
 
 # --- Math Solver ---
 def solve_math(query):
@@ -63,19 +63,21 @@ def RealtimeEngine(prompt):
 # --- Routes ---
 @app.route("/")
 def home():
+    user_name = session.get("user_name")
+    return render_template("index.html", assistant_name=AssistantName, user_name=user_name)
+
+@app.route("/google/login/callback")
+def google_login_callback():
     if not google.authorized:
         return redirect(url_for("google.login"))
     resp = google.get("/oauth2/v2/userinfo")
-    if not resp.ok:
-        return redirect(url_for("google.login"))
-    user_info = resp.json()
-    session["user"] = user_info
-    return render_template("index.html", assistant_name=AssistantName, user_name=user_info.get("name"))
+    if resp.ok:
+        info = resp.json()
+        session["user_name"] = info["name"]
+    return redirect(url_for("home"))
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    if "user" not in session:
-        return jsonify({"reply":"Please log in first."}),401
     data = request.get_json()
     user_prompt = data.get("message","")
     if not user_prompt:
@@ -83,10 +85,9 @@ def chat():
 
     reply = RealtimeEngine(user_prompt)
 
-    # Save chat log
     try:
         os.makedirs("chats", exist_ok=True)
-        filename = f"chats/{session['user']['email']}.json"
+        filename = f"chats/{session.get('user_name','guest')}.json"
         chat_log = {"user":user_prompt,"assistant":reply}
         if os.path.exists(filename):
             existing = json.load(open(filename,"r"))
