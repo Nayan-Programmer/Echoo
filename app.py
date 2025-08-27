@@ -11,24 +11,27 @@ AssistantName = env.get("AssistantName", "EchooAI")
 DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
 GroqAPIKey = env.get("GroqAPIKey", "")
+FLASK_SECRET_KEY = env.get("FLASK_SECRET_KEY", "secretkey")
+GOOGLE_CLIENT_ID = env.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = env.get("GOOGLE_CLIENT_SECRET", "")
 
-# Flask App
+# Flask app
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = env.get("FLASK_SECRET_KEY", "secretkey")
+app.secret_key = FLASK_SECRET_KEY
 
-# Google OAuth Setup
+# Google OAuth Blueprint
 google_bp = make_google_blueprint(
-    client_id=env.get("GOOGLE_CLIENT_ID"),
-    client_secret=env.get("GOOGLE_CLIENT_SECRET"),
-    scope=["profile", "email"],
-    redirect_url="/google/login/callback"
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
+    scope=["openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"],
+    redirect_url="/google_login_callback"
 )
-app.register_blueprint(google_bp, url_prefix="/google")
+app.register_blueprint(google_bp, url_prefix="/login")
 
-# Groq Client
+# Groq client
 client = Groq(api_key=GroqAPIKey)
 
-# --- Math Solver ---
+# --- Math solver ---
 def solve_math(query):
     try:
         expr = sympify(query)
@@ -42,7 +45,7 @@ def solve_math(query):
     except Exception as e:
         return f"Math Error: {e}"
 
-# --- AI Engine ---
+# --- AI engine ---
 def RealtimeEngine(prompt):
     if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
         return solve_math(prompt)
@@ -100,4 +103,4 @@ def chat():
     return jsonify({"reply":reply})
 
 if __name__=="__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT",5000)), debug=True)
