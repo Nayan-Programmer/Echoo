@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EchooAI - AI Assistant</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <style>
-    /* User ke diye gaye original styles */
     * {margin:0;padding:0;box-sizing:border-box;}
     body {font-family:'Inter', system-ui, sans-serif;color:#fff;background:#000;overflow-x:hidden;}
     :root {
@@ -36,9 +34,8 @@
     }
     .logo-img {width:1rem;height:1rem;border-radius:.25rem;}
     .logo-text h1 {font-size:1.25rem;font-weight:700;color:white;margin:0;}
-    .logo-text p {font-size:0.75rem; color: #9ca3af; margin:0;}
     .header-actions {display:flex;align-items:center;gap:.75rem;}
-    .header-btn {padding:.5rem 1rem;border-radius:.5rem;background:var(--glass-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--glass-dark-border);color:white;cursor:pointer;transition:all .2s ease;}
+    .header-btn {padding:.5rem;border-radius:.5rem;background:var(--glass-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--glass-dark-border);color:white;cursor:pointer;transition:all .2s ease;}
     .header-btn:hover {background:rgba(255,255,255,0.2);transform:translateY(-1px);}
     .main-content {flex:1;display:flex;flex-direction:column;max-width:64rem;margin:0 auto;width:100%;padding:1.5rem;gap:1.5rem;}
     .welcome-screen {flex:1;display:flex;align-items:center;justify-content:center;animation:fadeIn .5s ease-in-out;}
@@ -51,8 +48,7 @@
     .start-chat-btn:hover {box-shadow:0 20px 40px rgba(0,0,0,0.3);transform:scale(1.05);}
     .chat-area {flex:1;display:flex;flex-direction:column;animation:fadeIn .5s ease-in-out;}
     .messages-container {flex:1;background:var(--glass-dark-bg);backdrop-filter:blur(10px);border:1px solid var(--glass-dark-border);border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;min-height:400px;max-height:60vh;overflow-y:auto;}
-    .messages-container::-webkit-scrollbar {width:8px;background:transparent;}
-    .messages-container::-webkit-scrollbar-thumb {background:rgba(255, 255, 255, 0.2);border-radius:10px;}
+    .messages-container::-webkit-scrollbar {display:none;}
     .message {display:flex;margin-bottom:1rem;animation:fadeIn .5s ease-in-out;}
     .message.user {justify-content:flex-end;}
     .message-content {max-width:70%;display:flex;align-items:flex-start;gap:.75rem;}
@@ -86,109 +82,6 @@
     @keyframes fadeIn {0%{opacity:0;transform:translateY(10px);}100%{opacity:1;transform:translateY(0);}}
     @keyframes slideUp {0%{transform:translateY(100%);}100%{transform:translateY(0);}}
     @keyframes pulse {0%,100%{opacity:1;}50%{opacity:0.5;}}
-
-    /* New styles for sidebar, login, and profile */
-    .main-layout {
-        display: flex;
-        min-height: calc(100vh - 4rem);
-    }
-    .sidebar {
-        width: 250px;
-        background: var(--glass-dark-bg);
-        backdrop-filter: blur(10px);
-        border-right: 1px solid var(--glass-dark-border);
-        padding: 1.5rem 1rem;
-        display: none; /* Default hidden, will be shown on login */
-        flex-direction: column;
-        gap: 0.5rem;
-        transition: transform 0.3s ease-in-out;
-        transform: translateX(0);
-    }
-    .sidebar-link {
-        padding: 0.75rem 1rem;
-        border-radius: 0.75rem;
-        color: #9ca3af;
-        text-decoration: none;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        font-weight: 500;
-    }
-    .sidebar-link i {
-        font-size: 1.25rem;
-    }
-    .sidebar-link:hover, .sidebar-link.active {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-    }
-    #userProfile {
-        display: none;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding-bottom: 1.5rem;
-        border-bottom: 1px solid var(--glass-dark-border);
-        margin-bottom: 1.5rem;
-    }
-    #userAvatar {
-        width: 4rem;
-        height: 4rem;
-        border-radius: 50%;
-        object-fit: cover;
-        margin-bottom: 0.75rem;
-        border: 2px solid white;
-    }
-    #userName {
-        font-size: 1.125rem;
-        font-weight: 600;
-        margin: 0;
-    }
-    #userIdDisplay {
-        font-size: 0.75rem;
-        color: #9ca3af;
-        word-break: break-all;
-        margin-top: 0.25rem;
-    }
-    .login-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        background: linear-gradient(135deg, #4285F4 0%, #34A853 100%);
-        color: white;
-        border: none;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-weight: 600;
-    }
-    .login-btn i {
-        font-size: 1rem;
-    }
-    .login-btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
-    .loader {
-        border: 4px solid #f3f3f3;
-        border-radius: 50%;
-        border-top: 4px solid #3498db;
-        width: 20px;
-        height: 20px;
-        -webkit-animation: spin 2s linear infinite;
-        animation: spin 2s linear infinite;
-        display: none;
-        margin: 0 auto;
-    }
-    @-webkit-keyframes spin {
-        0% { -webkit-transform: rotate(0deg); }
-        100% { -webkit-transform: rotate(360deg); }
-    }
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
 </style>
 </head>
 <body>
@@ -200,7 +93,7 @@
         <div class="header-content">
             <div class="logo-section">
                 <div class="logo-icon">
-                    <img src="https://placehold.co/60x60/3CB371/FFFFFF?text=AI" alt="Logo" class="logo-img">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-img">
                 </div>
                 <div class="logo-text">
                     <h1>EchooAI</h1>
@@ -208,54 +101,45 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button id="loginBtn" class="login-btn"><i class="fab fa-google"></i> Login with Google</button>
-                <div id="authStatus" style="display:none; align-items:center; gap:0.5rem;">
-                    <span id="userNameDisplay"></span>
-                    <button id="logoutBtn" class="header-btn">Logout</button>
-                </div>
+                {% if user_info %}
+                    <button class="header-btn" onclick="window.location.href='/logout'">Logout</button>
+                {% else %}
+                    <button class="header-btn" onclick="window.location.href='/google-login'">Sign in with Google</button>
+                {% endif %}
             </div>
         </div>
     </header>
 
-    <div class="main-layout">
-        <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
-            <div id="userProfile">
-                <img id="userAvatar" src="https://placehold.co/100x100/3498db/FFFFFF?text=U" alt="User Avatar">
-                <h3 id="userName">Guest</h3>
-                <p id="userIdDisplay">User ID: N/A</p>
-            </div>
-            <a href="#" class="sidebar-link active"><i class="fas fa-home"></i> Home</a>
-            <a href="#" class="sidebar-link"><i class="fas fa-history"></i> History</a>
-            <a href="#" class="sidebar-link"><i class="fas fa-cog"></i> Settings</a>
-        </div>
-        
-        <main class="main-content">
-            <div class="welcome-screen" id="welcomeScreen">
-                <div class="welcome-content">
-                    <div class="welcome-logo">
-                        <img src="https://placehold.co/60x60/3CB371/FFFFFF?text=AI" alt="Logo" class="welcome-logo-img">
-                    </div>
+    <main class="main-content">
+        <div class="welcome-screen" id="welcomeScreen">
+            <div class="welcome-content">
+                <div class="welcome-logo">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="welcome-logo-img">
+                </div>
+                {% if user_info %}
+                    <h2 class="welcome-title">Welcome, {{ user_info.get('given_name', 'User') }}! 👋</h2>
+                    <p class="welcome-description">You're logged in. Click below to start chatting with EchooAI!</p>
+                    <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
+                {% else %}
                     <h2 class="welcome-title">Welcome to EchooAI</h2>
-                    <p class="welcome-description">Your AI assistant for everything. Please log in to start chatting!</p>
-                </div>
+                    <p class="welcome-description">Please sign in with Google to start chatting.</p>
+                    <button class="start-chat-btn" onclick="window.location.href='/google-login'">Sign in with Google</button>
+                {% endif %}
             </div>
+        </div>
 
-            <div class="chat-area" id="chatArea" style="display:none;">
-                <div class="messages-container" id="messagesContainer">
-                    <div id="loadingIndicator" class="loader"></div>
-                </div>
-                <div class="message-input-container">
-                    <div class="message-input-wrapper">
-                        <div class="input-area">
-                            <textarea id="messageInput" placeholder="Type your message..."></textarea>
-                            <button class="send-btn" id="sendBtn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
-                        </div>
+        <div class="chat-area" id="chatArea" style="display:none;">
+            <div class="messages-container" id="messagesContainer"></div>
+            <div class="message-input-container">
+                <div class="message-input-wrapper">
+                    <div class="input-area">
+                        <textarea id="messageInput" placeholder="Type your message..."></textarea>
+                        <button class="send-btn" onclick="sendMessage()">Send</button>
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </main>
 
     <footer class="footer">
         <div class="footer-content">
@@ -272,209 +156,61 @@
     </footer>
 </div>
 
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
-
 <script>
-    // Platform se milne wale global variables
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-    // Firebase services ko initialize karein
-    let app, auth, db, userId;
-
-    // Chat UI elements
-    const welcomeScreen = document.getElementById('welcomeScreen');
-    const chatArea = document.getElementById('chatArea');
-    const messagesContainer = document.getElementById('messagesContainer');
-    const messageInput = document.getElementById('messageInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const sidebar = document.getElementById('sidebar');
-    const loginBtn = document.getElementById('loginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const authStatusDiv = document.getElementById('authStatus');
-    const userProfileDiv = document.getElementById('userProfile');
-    const userAvatarImg = document.getElementById('userAvatar');
-    const userNameDisplay = document.getElementById('userNameDisplay');
-    const userIdDisplay = document.getElementById('userIdDisplay');
-    const loadingIndicator = document.getElementById('loadingIndicator');
-
-    // UI state ko update karne ke liye function
-    function updateUIForAuth(user) {
-        if (user) {
-            // User logged in hai
-            welcomeScreen.style.display = 'none';
-            chatArea.style.display = 'flex';
-            sidebar.style.display = 'flex';
-            loginBtn.style.display = 'none';
-            authStatusDiv.style.display = 'flex';
-            userProfileDiv.style.display = 'flex';
-            
-            userId = user.uid;
-            userNameDisplay.innerText = user.displayName || 'User';
-            userIdDisplay.innerText = `User ID: ${userId}`;
-            userAvatarImg.src = user.photoURL || 'https://placehold.co/100x100/3498db/FFFFFF?text=U';
-            
-            // Chat history ko load karein
-            loadChatHistory();
-        } else {
-            // User logged out hai
-            welcomeScreen.style.display = 'flex';
-            chatArea.style.display = 'none';
-            sidebar.style.display = 'none';
-            loginBtn.style.display = 'inline-flex';
-            authStatusDiv.style.display = 'none';
-            userProfileDiv.style.display = 'none';
-            messagesContainer.innerHTML = '';
-            userId = null;
-        }
+    function startChat(){
+        document.getElementById('welcomeScreen').style.display='none';
+        document.getElementById('chatArea').style.display='flex';
     }
 
-    // Google Sign-in Pop-up
-    async function signInWithGoogle() {
-        try {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            await firebase.auth().signInWithPopup(provider);
-        } catch (error) {
-            console.error("Google login error:", error);
-            // Error handling UI (custom modal) yahan add kar sakte hain
-        }
-    }
+    async function sendMessage(){
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        if(!text) return;
 
-    // Logout function
-    async function signOut() {
-        try {
-            await firebase.auth().signOut();
-        } catch (error) {
-            console.error("Logout error:", error);
-        }
-    }
+        const container = document.getElementById('messagesContainer');
 
-    // Chat history ko Firestore se load karein
-    function loadChatHistory() {
-        if (!userId) return;
-        
-        loadingIndicator.style.display = 'block';
-        
-        const chatPath = `/artifacts/${appId}/users/${userId}/chats`;
-        const q = firebase.firestore().collection(chatPath).orderBy("timestamp");
-        
-        // onSnapshot se real-time updates milengi
-        firebase.firestore().onSnapshot(q, (querySnapshot) => {
-            messagesContainer.innerHTML = ''; // Purane messages clear karein
-            querySnapshot.forEach((doc) => {
-                const chatData = doc.data();
-                appendMessageToUI(chatData.text, chatData.isUser);
-            });
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            loadingIndicator.style.display = 'none';
-        }, (error) => {
-            console.error("Error loading chat history:", error);
-            loadingIndicator.style.display = 'none';
-        });
-    }
-
-    // UI mein naya message add karein
-    function appendMessageToUI(text, isUser) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
-        const avatarText = isUser ? (firebase.auth().currentUser?.displayName?.charAt(0) || 'U') : 'AI';
-        
-        messageDiv.innerHTML = `
+        const userMessage = document.createElement('div');
+        userMessage.className='message user';
+        userMessage.innerHTML = `
             <div class="message-content">
-                <div class="message-avatar ${isUser ? 'user-avatar' : 'ai-avatar'}">${avatarText}</div>
-                <div class="message-bubble ${isUser ? 'user' : 'ai'}"><div class="message-text">${text}</div></div>
+                <div class="message-avatar user-avatar">U</div>
+                <div class="message-bubble user"><div class="message-text">${text}</div></div>
             </div>`;
-        messagesContainer.appendChild(messageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
+        container.appendChild(userMessage);
+        input.value='';
+        container.scrollTop=container.scrollHeight;
 
-    // Chat server ko message bhejkar reply receive karein
-    async function getAIResponse(prompt) {
-        // Dummy AI response function, as backend is not available
-        return new Promise(resolve => {
-            setTimeout(() => {
-                const reply = `Hi there! You said: "${prompt}". I'm a simple AI assistant. Your chat history is now saved!`;
-                resolve(reply);
-            }, 1000); // 1 second ka delay simulate karein
-        });
-    }
-
-    // Chat message ko send aur save karein
-    async function sendMessage() {
-        const text = messageInput.value.trim();
-        if (!text || !userId) return;
-
-        messageInput.value = '';
-        messageInput.disabled = true;
-        sendBtn.disabled = true;
-
-        // User ka message Firestore mein save karein
-        await firebase.firestore().collection(`/artifacts/${appId}/users/${userId}/chats`).add({
-            text: text,
-            isUser: true,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        // AI se response lekar Firestore mein save karein
-        const aiReply = await getAIResponse(text);
-        await firebase.firestore().collection(`/artifacts/${appId}/users/${userId}/chats`).add({
-            text: aiReply,
-            isUser: false,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        messageInput.disabled = false;
-        sendBtn.disabled = false;
-        messageInput.focus();
-    }
-
-    // Event Listeners
-    loginBtn.addEventListener('click', signInWithGoogle);
-    logoutBtn.addEventListener('click', signOut);
-    messageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-
-    // Firebase ko initialize karein aur auth state ko listen karein
-    window.onload = function() {
-        try {
-            app = firebase.initializeApp(firebaseConfig);
-            auth = firebase.auth();
-            db = firebase.firestore();
-
-            // Initial auth token ke saath sign-in karein
-            if (initialAuthToken) {
-                auth.signInWithCustomToken(initialAuthToken).catch(error => {
-                    console.error("Custom token login failed:", error);
-                    // Agar custom token fail ho to anonymous sign-in
-                    auth.signInAnonymously().catch(anonError => {
-                        console.error("Anonymous login failed:", anonError);
-                    });
-                });
-            } else {
-                // Agar token nahi hai to anonymous sign-in
-                auth.signInAnonymously().catch(anonError => {
-                    console.error("Anonymous login failed:", anonError);
-                });
-            }
-
-            // Auth state change ko listen karein
-            auth.onAuthStateChanged((user) => {
-                updateUIForAuth(user);
+        try{
+            const response = await fetch("/chat", {
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({message:text})
             });
+            const data = await response.json();
+            const aiText = data.reply;
 
-        } catch (e) {
-            console.error("Firebase initialization failed:", e);
+            const aiMessage = document.createElement('div');
+            aiMessage.className='message ai';
+            aiMessage.innerHTML = `
+                <div class="message-content">
+                    <div class="message-avatar ai-avatar">AI</div>
+                    <div class="message-bubble ai"><div class="message-text">${aiText}</div></div>
+                </div>`;
+            container.appendChild(aiMessage);
+            container.scrollTop=container.scrollHeight;
+        } catch(err){
+            console.error(err);
+            const errorMessage = document.createElement('div');
+            errorMessage.className='message ai';
+            errorMessage.innerHTML = `
+                <div class="message-content">
+                    <div class="message-avatar ai-avatar">AI</div>
+                    <div class="message-bubble ai"><div class="message-text">Error contacting AI server.</div></div>
+                </div>`;
+            container.appendChild(errorMessage);
+            container.scrollTop=container.scrollHeight;
         }
-    };
-
+    }
 </script>
 </body>
 </html>
