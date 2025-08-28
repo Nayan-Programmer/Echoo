@@ -1,46 +1,78 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory, session, redirect, url_for
-from sympy import sympify, solve, simplify, pretty
+import os
+import requests
+import json
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from dotenv import dotenv_values
 from groq import Groq
-import requests, os
-from authlib.integrations.flask_client import OAuth
-import time
+from sympy import sympify, solve, simplify, pretty
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import Flow
+import firebase_admin
+from firebase_admin import credentials, auth, firestore
 
 # Load environment variables
 env = dotenv_values(".env")
-Username = env.get("Username", "User")
-AssistantName = env.get("AssistantName", "EchooAI")
-GroqAPIKey = env.get("GroqAPIKey", "")
-GoogleAPIKey = env.get("GoogleAPIKey", "")
-GoogleCSEID = env.get("GoogleCSEID", "")
-DeveloperName = env.get("DeveloperName", "Nayan")
-FullInformation = env.get("FullInformation", "")
+USERNAME = env.get("Username", "User")
+ASSISTANT_NAME = env.get("AssistantName", "EchooAI")
+GROQ_API_KEY = env.get("GroqAPIKey", "")
+GOOGLE_API_KEY = env.get("GoogleAPIKey", "")
+GOOGLE_CSE_ID = env.get("GoogleCSEID", "")
+DEVELOPER_NAME = env.get("DeveloperName", "Nayan")
+FULL_INFORMATION = env.get("FullInformation", "")
+CLIENT_SECRETS_FILE = "client_secrets.json"
+SCOPES = ["https://www.googleapis.com/auth/userinfo.email", "openid", "https://www.googleapis.com/auth/userinfo.profile"]
 
-# Google OAuth credentials
-GoogleClientID = env.get("GOOGLE_CLIENT_ID")
-GoogleClientSecret = env.get("GOOGLE_CLIENT_SECRET")
+# Ensure all necessary environment variables are set
+if not all([GROQ_API_KEY, GOOGLE_API_KEY, GOOGLE_CSE_ID]):
+    raise ValueError("Missing required environment variables. Check your .env file.")
 
-# Initialize Flask app
+# Initialize Groq client
+groq_client = Groq(api_key=GROQ_API_KEY)
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.urandom(24)
 
-# Initialize Authlib OAuth
-oauth = OAuth(app)
+# Use a memory-based session for this example
+# In a production app, you would use something more robust like Flask-Session with a database
+from flask.sessions import SessionInterface
+from werkzeug.datastructures import CallbackDict
 
-# Register the Google OAuth client
-oauth.register(
-    name='google',
-    client_id=GoogleClientID,
-    client_secret=GoogleClientSecret,
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={'scope': 'openid email profile'}
-)
+class SimpleSession(CallbackDict, SessionInterface):
+    def __init__(self, initial=None):
+        def on_update(d):
+            self.modified = True
+        CallbackDict.__init__(self, initial, on_update)
+        self.modified = False
+
+    def open(self, app, request):
+        return SimpleSession(initial=request.cookies.get('session'))
+
+    def save(self, app, session, response):
+        if session.modified:
+            response.set_cookie('session', json.dumps(dict(session)))
+
+app.session_interface = SimpleSession()
+
+# Initialize Firebase Admin SDK
+FIREBASE_CREDENTIALS = env.get("FIREBASE_ADMIN_SDK_CONFIG")
+if not FIREBASE_CREDENTIALS:
+    raise ValueError("Missing FIREBASE_ADMIN_SDK_CONFIG in .env file.")
+firebase_credentials = credentials.Certificate(json.loads(FIREBASE_CREDENTIALS))
+firebase_admin.initialize_app(firebase_credentials)
+db = firestore.client()
+
+# --- Utility Functions ---
+def get_or_create_user(user_email, user_id, display_name):
+    """Fetches or creates a user in Firebase Auth and returns their UID."""
+    try:
+        user = auth.get_user_by_email(user_email)
+        return user.uid
+    except auth.AuthError:
+        user = auth.create_user(uid=user_id, email=user_email, display_name=display_name)
+        return user.uid
 
 # --- Math Solver ---
 def solve_math(query):
-    """
-    Solves mathematical equations using the sympy library.
-    """
     try:
         expr = sympify(query)
         simplified = simplify(expr)
@@ -54,13 +86,10 @@ def solve_math(query):
         return f"Math Error: {e}"
 
 # --- Google Search ---
-def GoogleSearch(query):
-    """
-    Performs a custom Google Search and returns snippets.
-    """
+def google_search(query):
     try:
         url = "https://www.googleapis.com/customsearch/v1"
-        params = {"q": query, "key": GoogleAPIKey, "cx": GoogleCSEID}
+        params = {"q": query, "key": GOOGLE_API_KEY, "cx": GOOGLE_CSE_ID}
         r = requests.get(url, params=params)
         data = r.json()
         if "items" in data:
@@ -70,11 +99,7 @@ def GoogleSearch(query):
         return f"(Search Error: {e})"
 
 # --- AI Engine ---
-def RealtimeEngine(prompt, chat_history, user_name):
-    """
-    Main AI engine that handles various types of queries.
-    It now includes chat history for context.
-    """
+def realtime_engine(prompt):
     # Math queries
     if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
         return solve_math(prompt)
@@ -82,29 +107,20 @@ def RealtimeEngine(prompt, chat_history, user_name):
     # Google search
     if prompt.lower().startswith("search:"):
         query = prompt.replace("search:", "").strip()
-        return GoogleSearch(query)
+        return google_search(query)
 
     # Developer info
     if "who is your developer" in prompt.lower() or "who created you" in prompt.lower():
-        return f"My developer is {DeveloperName}. {FullInformation}"
+        return f"My developer is {DEVELOPER_NAME}. {FULL_INFORMATION}"
 
     # Groq AI
     try:
-        client = Groq(api_key=GroqAPIKey)
-        
-        # Build the messages list for the API call
-        messages = [
-            # System message with user's name for context
-            {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}. The current user is {user_name}. Maintain a conversational and friendly tone."},
-            # Add previous chat history
-            *chat_history,
-            # Add the new user prompt
-            {"role": "user", "content": prompt}
-        ]
-        
-        response = client.chat.completions.create(
+        response = groq_client.chat.completions.create(
             model="llama3-70b-8192",
-            messages=messages,
+            messages=[
+                {"role": "system", "content": f"You are {ASSISTANT_NAME}, an AI built by {DEVELOPER_NAME}."},
+                {"role": "user", "content": prompt}
+            ],
             max_tokens=500
         )
         return response.choices[0].message.content
@@ -116,108 +132,170 @@ def RealtimeEngine(prompt, chat_history, user_name):
 @app.route("/", methods=["GET"])
 def home():
     user_info = session.get('user_info')
-    # Get current chat history and all previous chats from session
-    current_chat = session.get('current_chat', [])
-    all_chats = session.get('all_chats', [])
-    return render_template("index.html", 
-                           assistant_name=AssistantName, 
-                           user_info=user_info, 
-                           current_chat=current_chat,
-                           all_chats=all_chats)
+    all_chats = []
+    current_chat = []
 
-# Route to initiate Google login
-@app.route('/google-login')
-def google_login():
-    redirect_uri = url_for('google_auth', _external=True)
-    return oauth.google.authorize_redirect(redirect_uri)
+    if user_info:
+        user_id = user_info['uid']
+        # Load all previous chat titles for the sidebar
+        chat_docs = db.collection('users').document(user_id).collection('chats').stream()
+        for doc in chat_docs:
+            chat_data = doc.to_dict()
+            all_chats.append({
+                "id": doc.id,
+                "title": chat_data.get("title", "Untitled Chat")
+            })
 
-# Route to handle Google's callback
-@app.route('/google/auth/')
-def google_auth():
-    try:
-        token = oauth.google.authorize_access_token()
-        user = oauth.google.parse_id_token(token, nonce=session.get('nonce'))
+        # Load the current chat from the session or default to a new one
+        current_chat_id = session.get('current_chat_id')
+        if current_chat_id:
+            chat_doc = db.collection('users').document(user_id).collection('chats').document(current_chat_id).get()
+            if chat_doc.exists:
+                current_chat = chat_doc.to_dict().get('history', [])
+            else:
+                session.pop('current_chat_id', None)
         
-        session['user_info'] = user
-        session.pop('nonce', None)
-        
-        # Clear current chat on login
-        session.pop('current_chat', None)
-        return redirect(url_for('home'))
-    except Exception as e:
-        print(f"Authentication Error: {e}")
-        return redirect(url_for('home'))
-
-# Logout route
-@app.route('/logout')
-def logout():
-    session.pop('user_info', None)
-    session.pop('current_chat', None)
-    session.pop('all_chats', None)
-    return redirect(url_for('home'))
+    return render_template(
+        "index.html", 
+        assistant_name=ASSISTANT_NAME, 
+        developer_name=DEVELOPER_NAME,
+        user_info=user_info,
+        all_chats=all_chats,
+        current_chat=current_chat
+    )
 
 @app.route("/chat", methods=["POST"])
 def chat():
     user_info = session.get('user_info')
     if not user_info:
-        return jsonify({"reply": "Please log in with Google to use the chat."}), 401
+        return jsonify({"reply": "Please log in to chat."}), 401
 
     data = request.get_json()
     user_prompt = data.get("message", "")
     if not user_prompt:
         return jsonify({"reply": "Please enter a message."}), 400
 
-    user_name = user_info.get('given_name', 'User')
-
-    current_chat = session.get('current_chat', [])
+    reply = realtime_engine(user_prompt)
     
-    reply = RealtimeEngine(user_prompt, current_chat, user_name)
-
+    # Update the in-memory chat history
+    current_chat = session.get('chat_history', [])
     current_chat.append({"role": "user", "content": user_prompt})
     current_chat.append({"role": "assistant", "content": reply})
-
-    session['current_chat'] = current_chat
+    session['chat_history'] = current_chat
     
     return jsonify({"reply": reply})
 
-@app.route("/save-chat", methods=["POST"])
-def save_chat():
-    """Saves the current chat history to the list of all chats."""
-    current_chat = session.get('current_chat', [])
-    if current_chat:
-        all_chats = session.get('all_chats', [])
-        # Create a title for the chat, e.g., the first user message
-        title = current_chat[0]['content'][:30] + '...' if len(current_chat[0]['content']) > 30 else current_chat[0]['content']
-        chat_id = int(time.time()) # Unique ID based on timestamp
-        
-        all_chats.append({
-            'id': chat_id,
-            'title': title,
-            'history': current_chat
-        })
-        session['all_chats'] = all_chats
-    return jsonify({"status": "Chat saved."})
-
 @app.route("/new-chat", methods=["POST"])
 def new_chat():
-    """Clears the current chat history to start a new conversation."""
-    session.pop('current_chat', None)
-    return jsonify({"status": "New chat started."})
+    user_info = session.get('user_info')
+    if not user_info:
+        return jsonify({"success": False})
 
-@app.route("/load-chat/<int:chat_id>", methods=["GET"])
+    session.pop('chat_history', None)
+    session.pop('current_chat_id', None)
+    return jsonify({"success": True})
+
+@app.route("/save-chat", methods=["POST"])
+def save_chat():
+    user_info = session.get('user_info')
+    if not user_info:
+        return jsonify({"success": False, "message": "Not logged in."})
+
+    user_id = user_info['uid']
+    chat_history = session.get('chat_history', [])
+
+    if not chat_history:
+        return jsonify({"success": False, "message": "No chat history to save."})
+
+    current_chat_id = session.get('current_chat_id')
+    chat_title = chat_history[0]['content'][:30] if chat_history else "New Chat"
+
+    chat_doc_ref = db.collection('users').document(user_id).collection('chats')
+    
+    if current_chat_id:
+        # Update existing chat
+        doc_ref = chat_doc_ref.document(current_chat_id)
+        doc_ref.set({
+            "title": chat_title,
+            "history": chat_history,
+            "last_updated": firestore.SERVER_TIMESTAMP
+        })
+        return jsonify({"success": True, "message": "Chat updated."})
+    else:
+        # Save as a new chat
+        doc_ref = chat_doc_ref.add({
+            "title": chat_title,
+            "history": chat_history,
+            "created_at": firestore.SERVER_TIMESTAMP,
+            "last_updated": firestore.SERVER_TIMESTAMP
+        })
+        session['current_chat_id'] = doc_ref.id
+        return jsonify({"success": True, "message": "Chat saved.", "chat_id": doc_ref.id})
+
+@app.route("/load-chat/<chat_id>", methods=["GET"])
 def load_chat(chat_id):
-    """Loads a specific chat from the all_chats list into the current_chat session."""
-    all_chats = session.get('all_chats', [])
-    chat_to_load = next((chat for chat in all_chats if chat['id'] == chat_id), None)
-    if chat_to_load:
-        session['current_chat'] = chat_to_load['history']
-        return jsonify({"status": "Chat loaded.", "history": chat_to_load['history']})
-    return jsonify({"status": "Chat not found."}), 404
+    user_info = session.get('user_info')
+    if not user_info:
+        return jsonify({"success": False, "message": "Not logged in."})
+    
+    user_id = user_info['uid']
+    chat_doc = db.collection('users').document(user_id).collection('chats').document(chat_id).get()
+    
+    if chat_doc.exists:
+        chat_data = chat_doc.to_dict()
+        session['chat_history'] = chat_data.get('history', [])
+        session['current_chat_id'] = chat_id
+        return jsonify({"success": True, "message": "Chat loaded."})
+    else:
+        return jsonify({"success": False, "message": "Chat not found."}), 404
 
-# Serve static logo
-@app.route('/logo/<path:filename>')
-def logo(filename):
-    return send_from_directory('static', filename)
+@app.route('/google-login')
+def google_login():
+    flow = Flow.from_client_secrets_file(
+        CLIENT_SECRETS_FILE,
+        scopes=SCOPES,
+        redirect_uri=url_for('callback', _external=True)
+    )
+    authorization_url, state = flow.authorization_url()
+    session['state'] = state
+    return redirect(authorization_url)
+
+@app.route('/callback')
+def callback():
+    state = session['state']
+    flow = Flow.from_client_secrets_file(
+        CLIENT_SECRETS_FILE,
+        scopes=SCOPES,
+        state=state,
+        redirect_uri=url_for('callback', _external=True)
+    )
+    flow.fetch_token(authorization_response=request.url)
+    credentials_obj = flow.credentials
+    user_info_service = requests.get('https://www.googleapis.com/oauth2/v3/userinfo',
+                                    headers={'Authorization': f'Bearer {credentials_obj.token}'})
+    user_info = user_info_service.json()
+    
+    # Get or create the user in Firebase Auth
+    firebase_uid = get_or_create_user(user_info['email'], user_info['sub'], user_info['name'])
+    
+    # Create a Firebase custom token
+    custom_token = auth.create_custom_token(firebase_uid)
+    
+    session['user_info'] = {
+        'uid': firebase_uid,
+        'name': user_info.get('given_name', user_info.get('name')),
+        'email': user_info['email']
+    }
+    
+    # Pass the custom token to the frontend
+    return redirect(url_for('home', custom_token=custom_token.decode("utf-8")))
+
+@app.route('/logout')
+def logout():
+    session.pop('user_info', None)
+    session.pop('chat_history', None)
+    session.pop('current_chat_id', None)
+    return redirect(url_for('home'))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
