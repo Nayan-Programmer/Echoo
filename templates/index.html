@@ -278,8 +278,6 @@
                     const data = await response.json();
                     if (data.status === "Chat loaded.") {
                         displayChatHistory(data.history);
-                        // Also update the server-side session to reflect this change
-                        await fetch(`/load-chat/${chatId}`);
                     }
                 } else {
                     alert('Error loading chat.');
