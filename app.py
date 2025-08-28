@@ -1,8 +1,9 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, session, redirect, url_for
 from sympy import sympify, solve, simplify, pretty
 from dotenv import dotenv_values
 from groq import Groq
 import requests, os
+from authlib.integrations.flask_client import OAuth
 
 # Load environment variables
 env = dotenv_values(".env")
@@ -14,9 +15,25 @@ GoogleCSEID = env.get("GoogleCSEID", "")
 DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
 
-# Initialize Groq client
-client = Groq(api_key=GroqAPIKey)
+# Google OAuth credentials
+GoogleClientID = env.get("GOOGLE_CLIENT_ID")
+GoogleClientSecret = env.get("GOOGLE_CLIENT_SECRET")
+
+# Initialize Flask app
 app = Flask(__name__, template_folder="templates", static_folder="static")
+app.secret_key = os.urandom(24)
+
+# Initialize Authlib OAuth
+oauth = OAuth(app)
+
+# Register the Google OAuth client
+oauth.register(
+    name='google',
+    client_id=GoogleClientID,
+    client_secret=GoogleClientSecret,
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'}
+)
 
 # --- Math Solver ---
 def solve_math(query):
@@ -62,6 +79,7 @@ def RealtimeEngine(prompt):
 
     # Groq AI
     try:
+        client = Groq(api_key=GroqAPIKey)
         response = client.chat.completions.create(
             model="llama3-70b-8192",
             messages=[
@@ -78,14 +96,40 @@ def RealtimeEngine(prompt):
 # --- Routes ---
 @app.route("/", methods=["GET"])
 def home():
-    return render_template("index.html", assistant_name=AssistantName)
+    user_info = session.get('user_info')
+    return render_template("index.html", assistant_name=AssistantName, user_info=user_info)
+
+# Route to initiate Google login
+@app.route('/google-login')
+def google_login():
+    redirect_uri = url_for('google_auth', _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+# Route to handle Google's callback
+@app.route('/google/auth/')
+def google_auth():
+    token = oauth.google.authorize_access_token()
+    user = oauth.google.parse_id_token(token)
+    session['user_info'] = user
+    return redirect(url_for('home'))
+
+# Logout route
+@app.route('/logout')
+def logout():
+    session.pop('user_info', None)
+    return redirect(url_for('home'))
 
 @app.route("/chat", methods=["POST"])
 def chat():
+    user_info = session.get('user_info')
+    if not user_info:
+        return jsonify({"reply": "Please log in with Google to use the chat."}), 401
+
     data = request.get_json()
     user_prompt = data.get("message", "")
     if not user_prompt:
         return jsonify({"reply": "Please enter a message."}), 400
+    
     reply = RealtimeEngine(user_prompt)
     return jsonify({"reply": reply})
 
