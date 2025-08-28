@@ -8,3 +8,6 @@ requests
 sympy
 flask-dance
 AuthLib
+firebase-admin
+google-api-python-client
+google-auth-oauthlib
