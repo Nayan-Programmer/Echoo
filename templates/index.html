@@ -3,465 +3,116 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EchooAI - AI Assistant</title>
+<title>{{ assistant_name }} - AI Assistant</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-    body {
-        font-family: 'Inter', system-ui, sans-serif;
-        color: #fff;
-        background: #111;
-        overflow-x: hidden;
-    }
+    /* --- Global --- */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; color: #fff; background: #000; overflow-x: hidden; }
     :root {
-        --primary-purple: #a855f7;
-        --secondary-pink: #ec4899;
-        --dark-bg: #1f2937;
-        --input-bg: #374151;
-        --border-color: #4b5563;
-        --radius: 1rem;
-    }
-    .background-gradient {
-        position: fixed;
-        inset: 0;
-        background: linear-gradient(135deg, var(--primary-purple) 0%, var(--secondary-pink) 100%);
-        opacity: 0.15;
-        z-index: -2;
-    }
-    .background-overlay {
-        position: fixed;
-        inset: 0;
-        background-color: #111;
-        z-index: -1;
-    }
-    .app {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        position: relative;
-    }
-    .header {
-        background: rgba(31, 41, 55, 0.8);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border-bottom: 1px solid var(--border-color);
-        z-index: 100;
-        padding: 0 1.5rem;
-    }
-    .header-content {
-        max-width: 1536px;
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        height: 4rem;
-    }
-    .logo-section {
-        display: flex;
-        align-items: center;
-        gap: .75rem;
-    }
-    .logo-icon {
-        width: 1.8rem;
-        height: 1.8rem;
-        border-radius: var(--radius);
-        background: linear-gradient(135deg, var(--primary-purple) 0%, var(--secondary-pink) 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    }
-    .logo-img {
-        width: 1rem;
-        height: 1rem;
-        border-radius: .25rem;
-    }
-    .logo-text h1 {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: white;
-        margin: 0;
-    }
-    .header-actions {
-        display: flex;
-        align-items: center;
-        gap: .75rem;
-    }
-    .header-btn {
-        padding: .5rem 1rem;
-        border-radius: .5rem;
-        background: var(--input-bg);
-        border: 1px solid var(--border-color);
-        color: white;
-        cursor: pointer;
-        transition: all .2s ease;
-    }
-    .header-btn:hover {
-        background: #4b5563;
-        transform: translateY(-1px);
-    }
-    .main-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        max-width: 64rem;
-        margin: 0 auto;
-        width: 100%;
-        padding: 1.5rem;
-        gap: 1.5rem;
-    }
-    .welcome-screen {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn .5s ease-in-out;
-    }
-    .welcome-content {
-        text-align: center;
-        max-width: 32rem;
-        margin: 0 auto;
-        padding: 2rem;
-        background: rgba(31, 41, 55, 0.6);
-        border-radius: var(--radius);
-        backdrop-filter: blur(10px);
-        border: 1px solid var(--border-color);
-        box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-    }
-    .welcome-logo {
-        width: 5rem;
-        height: 5rem;
-        margin: 0 auto 2rem;
-        background: linear-gradient(135deg, var(--primary-purple) 0%, var(--secondary-pink) 100%);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-    }
-    .welcome-logo-img {
-        width: 2rem;
-        height: 2rem;
-        border-radius: .5rem;
-    }
-    .welcome-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: white;
-        margin-bottom: 1rem;
-    }
-    .welcome-description {
-        font-size: 1.25rem;
-        color: #d1d5db;
-        margin-bottom: 2rem;
-        line-height: 1.75;
-    }
-    .google-signin-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: .5rem;
-        padding: 1rem 2rem;
-        background: white;
-        color: #000;
-        font-weight: 600;
-        border: none;
-        border-radius: var(--radius);
-        cursor: pointer;
-        transition: all .3s ease;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    }
-    .google-signin-btn:hover {
-        background-color: #f0f0f0;
-        transform: translateY(-2px);
-        box-shadow: 0 15px 30px rgba(0,0,0,0.25);
-    }
-    .google-icon {
-        width: 1.2rem;
-        height: 1.2rem;
-    }
-    .chat-area {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        animation: fadeIn .5s ease-in-out;
-    }
-    .messages-container {
-        flex: 1;
-        background: rgba(31, 41, 55, 0.8);
-        backdrop-filter: blur(10px);
-        border: 1px solid var(--border-color);
-        border-radius: 1rem;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        min-height: 400px;
-        max-height: 60vh;
-        overflow-y: auto;
-    }
-    .messages-container::-webkit-scrollbar {
-        display: none;
-    }
-    .message {
-        display: flex;
-        margin-bottom: 1rem;
-        animation: fadeIn .5s ease-in-out;
-    }
-    .message.user {
-        justify-content: flex-end;
-    }
-    .message-content {
-        max-width: 70%;
-        display: flex;
-        align-items: flex-start;
-        gap: .75rem;
-    }
-    .message.user .message-content {
-        flex-direction: row-reverse;
-    }
-    .message-avatar {
-        width: 2rem;
-        height: 2rem;
-        border-radius: .5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-    .ai-avatar {
-        background: linear-gradient(135deg, var(--primary-purple) 0%, var(--secondary-pink) 100%);
-        color: white;
-    }
-    .user-avatar {
-        background: linear-gradient(135deg, #4c1d95 0%, #1e40af 100%);
-        color: white;
-        font-size: .75rem;
-        font-weight: 600;
-    }
-    .message-bubble {
-        border-radius: 1rem;
-        padding: .75rem 1rem;
-        position: relative;
-    }
-    .message-bubble.ai {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        color: white;
-    }
-    .message-bubble.user {
-        background: linear-gradient(135deg, var(--primary-purple) 0%, var(--secondary-pink) 100%);
-        color: white;
-    }
-    .message-text {
-        white-space: pre-wrap;
-        line-height: 1.5;
-    }
-    .message-input-container {
-        animation: slideUp .3s ease-out;
-    }
-    .message-input-wrapper {
-        background: rgba(31, 41, 55, 0.8);
-        backdrop-filter: blur(10px);
-        border: 1px solid var(--border-color);
-        border-radius: 1rem;
-        padding: 1rem;
-    }
-    .input-area {
-        display: flex;
-        align-items: flex-end;
-        gap: 1rem;
-        margin-bottom: .75rem;
-    }
-    #messageInput {
-        flex: 1;
-        background: var(--input-bg);
-        border: none;
-        border-radius: var(--radius);
-        padding: .75rem 3rem .75rem 1rem;
-        color: white;
-        font-family: inherit;
-        font-size: 1rem;
-        resize: none;
-        min-height: 2.75rem;
-        max-height: 8rem;
-        outline: none;
-        transition: all .2s ease;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
-    #messageInput::-webkit-scrollbar {
-        display: none;
-    }
-    #messageInput::placeholder {
-        color: #9ca3af;
-    }
-    #messageInput:focus {
-        background: #4b5563;
-        box-shadow: 0 0 0 2px var(--primary-purple);
-    }
-    .send-btn {
-        background: linear-gradient(135deg, var(--primary-purple) 0%, var(--secondary-pink) 100%);
-        border: none;
-        border-radius: var(--radius);
-        padding: .75rem;
-        color: white;
-        cursor: pointer;
-        transition: all .2s ease;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        flex-shrink: 0;
-    }
-    .send-btn:hover:not(:disabled) {
-        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        transform: scale(1.05);
-    }
-    .send-btn:disabled {
-        opacity: .5;
-        cursor: not-allowed;
-        transform: none;
-    }
-    .footer {
-        background: rgba(31, 41, 55, 0.8);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border-top: 1px solid var(--border-color);
-        margin-top: auto;
-    }
-    .footer-content {
-        max-width: 64rem;
-        margin: 0 auto;
-        padding: 1rem 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: .875rem;
-        color: #9ca3af;
-    }
-    .footer-left {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    .separator {
-        width: .25rem;
-        height: .25rem;
-        background: #6b7280;
-        border-radius: 50%;
-    }
-    .footer-link {
-        color: #9ca3af;
-        text-decoration: none;
-        transition: color .2s ease;
-    }
-    .footer-link:hover {
-        color: var(--primary-purple);
-    }
-    .footer-right {
-        display: flex;
-        align-items: center;
-        gap: .5rem;
-    }
-    .status-indicator {
-        width: .5rem;
-        height: .5rem;
-        background: #22c55e;
-        border-radius: 50%;
-        animation: pulse 2s infinite;
-    }
-    .status-text {
-        color: #22c55e;
-    }
-    @keyframes fadeIn {
-        0% { opacity: 0; transform: translateY(10px); }
-        100% { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes slideUp {
-        0% { transform: translateY(100%); }
-        100% { transform: translateY(0); }
-    }
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
+        --primary-500: hsl(172.4, 82.8%, 36.1%);
+        --emerald-500: hsl(160, 84.1%, 39.4%);
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-dark-bg: rgba(30, 41, 59, 0.85);
+        --glass-dark-border: rgba(148, 163, 184, 0.15);
+        --radius: 1.2rem;
     }
 
-    /* Styles for the collapsible sidebar */
+    /* --- Backgrounds --- */
+    .background-gradient { position: fixed; inset: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); opacity: 0.85; z-index: -2; }
+    .background-overlay { position: fixed; inset: 0; background-image: url('https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=1920&q=80'); background-size: cover; background-position: center; opacity: 0.05; z-index: -1; }
+
+    .app { min-height: 100vh; display: flex; flex-direction: column; position: relative; }
+
+    /* --- Header --- */
+    .header { background: var(--glass-dark-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--glass-dark-border); z-index: 100; }
+    .header-content { max-width: 1280px; margin: 0 auto; padding: 0 1.25rem; display: flex; align-items: center; justify-content: space-between; height: 4rem; }
+    .logo-section { display: flex; align-items: center; gap: .75rem; }
+    .logo-icon { width: 1.8rem; height: 1.8rem; border-radius: var(--radius); background: linear-gradient(135deg, var(--primary-500), var(--emerald-500)); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+    .logo-img { width: 1rem; height: 1rem; border-radius: .25rem; }
+    .logo-text h1 { font-size: 1.25rem; font-weight: 700; color: #fff; }
+    .logo-text p { font-size: .75rem; color: #9ca3af; }
+    .header-actions { display: flex; align-items: center; gap: .75rem; }
+    .header-btn { padding: .5rem .9rem; border-radius: .6rem; background: var(--glass-bg); border: 1px solid var(--glass-dark-border); color: #fff; cursor: pointer; transition: .2s; text-decoration: none; font-size: 0.9rem; }
+    .header-btn:hover { background: rgba(255,255,255,0.18); transform: translateY(-1px); }
+
+    /* --- Sidebar --- */
     .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        width: 280px;
-        background: rgba(31, 41, 55, 0.9);
-        backdrop-filter: blur(20px);
-        border-right: 1px solid var(--border-color);
-        padding: 1.5rem;
-        display: none;
-        flex-direction: column;
-        z-index: 101;
-        transform: translateX(-100%);
-        transition: transform 0.3s ease-in-out;
+        position: fixed; top: 0; left: -260px; height: 100%; width: 240px;
+        background: var(--glass-dark-bg); backdrop-filter: blur(14px);
+        border-right: 1px solid var(--glass-dark-border);
+        padding: 2rem 1rem; display: flex; flex-direction: column; gap: 1.5rem;
+        transition: left .35s ease; z-index: 200;
     }
-    .sidebar.open {
-        transform: translateX(0);
+    .sidebar.active { left: 0; }
+    .sidebar h2, .sidebar h3 { font-size: 1rem; font-weight: 600; color: #f3f4f6; margin-bottom: .5rem; }
+    .sidebar-chats { display: flex; flex-direction: column; gap: 0.35rem; overflow-y: auto; flex-grow: 1; }
+    .sidebar a.chat-link {
+        text-decoration: none; color: #d1d5db; font-size: .95rem; font-weight: 500;
+        padding: .65rem .85rem; border-radius: .6rem; transition: .25s;
+        display: flex; align-items: center; gap: .5rem;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .sidebar-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: 1.5rem;
-        margin-bottom: 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-    }
-    .sidebar-header h2 {
-        font-size: 1.25rem;
-        font-weight: 700;
-    }
-    .sidebar-header button {
-        padding: .5rem 1rem;
-        border-radius: .5rem;
-        background: var(--input-bg);
-        border: 1px solid var(--border-color);
-        color: white;
-        cursor: pointer;
-        transition: all .2s ease;
-    }
-    .sidebar-header button:hover {
-        background: #4b5563;
-        transform: translateY(-1px);
-    }
-    .chat-list {
-        flex-grow: 1;
-        overflow-y: auto;
-        scrollbar-width: none;
-    }
-    .chat-list::-webkit-scrollbar {
-        display: none;
-    }
-    .chat-item {
-        padding: 1rem;
-        margin-bottom: 0.5rem;
-        background-color: rgba(255, 255, 255, 0.05);
-        border-radius: 0.5rem;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-        border: 1px solid transparent;
-        word-break: break-word;
-    }
-    .chat-item:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid var(--border-color);
-        transform: scale(1.02);
-    }
-    /* Overlay to prevent interaction with main content when sidebar is open */
-    .sidebar-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 100;
-        display: none;
-    }
+    .sidebar a.chat-link:hover { background: rgba(255,255,255,0.15); color: #fff; transform: translateX(4px); }
+
+    /* Hamburger */
+    .hamburger { width: 2rem; height: 2rem; display: flex; flex-direction: column; justify-content: center; gap: .35rem; cursor: pointer; }
+    .hamburger span { height: 3px; width: 100%; background: white; border-radius: 5px; transition: .3s; }
+    .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+    .hamburger.active span:nth-child(2) { opacity: 0; }
+    .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(6px, -6px); }
+
+    /* --- Animations --- */
+    @keyframes fadeIn { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { 0% { transform: translateY(100%); } 100% { transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    /* --- Main Content --- */
+    .main-content { flex: 1; display: flex; flex-direction: column; max-width: 64rem; margin: 0 auto; width: 100%; padding: 1.25rem; gap: 1.25rem; }
+
+    .welcome-screen { flex: 1; display: flex; align-items: center; justify-content: center; animation: fadeIn .5s ease-in-out; }
+    .welcome-content { text-align: center; max-width: 32rem; margin: 0 auto; }
+    .welcome-logo { width: 5rem; height: 5rem; margin: 0 auto 2rem; background: linear-gradient(135deg, var(--primary-500), var(--emerald-500)); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 20px 40px rgba(0,0,0,0.35); }
+    .welcome-logo-img { width: 2rem; height: 2rem; border-radius: .5rem; }
+    .welcome-title { font-size: 2.2rem; font-weight: 700; margin-bottom: 1rem; }
+    .welcome-description { font-size: 1.1rem; color: #cbd5e1; margin-bottom: 1.75rem; line-height: 1.6; }
+    .login-btn { display: inline-flex; align-items: center; gap: .6rem; padding: 0.9rem 1.8rem; background: linear-gradient(135deg, var(--primary-500), var(--emerald-500)); color: #fff; font-weight: 600; border: none; border-radius: var(--radius); cursor: pointer; transition: .3s; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-decoration: none; }
+    .login-btn:hover { box-shadow: 0 16px 32px rgba(0,0,0,0.35); transform: scale(1.05); }
+
+    /* --- Chat --- */
+    .chat-area { flex: 1; display: flex; flex-direction: column; gap: 1rem; }
+    .messages-container { flex: 1; overflow-y: auto; padding-right: .75rem; display: flex; flex-direction: column; gap: 1rem; max-height: calc(100vh - 12rem); scroll-behavior: smooth; }
+
+    .message { display: flex; align-items: flex-start; gap: 0.75rem; animation: fadeIn 0.25s ease-in-out; }
+    .message.user { justify-content: flex-end; }
+    .message-content { display: flex; align-items: flex-end; max-width: 75%; }
+    .message.user .message-content { flex-direction: row-reverse; }
+
+    .message-avatar { width: 2.2rem; height: 2.2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem; }
+    .user-avatar { background: #555; }
+    .ai-avatar { background: linear-gradient(135deg, var(--primary-500), var(--emerald-500)); }
+
+    .message-bubble { padding: 0.85rem 1.15rem; border-radius: var(--radius); font-size: 0.95rem; line-height: 1.4; box-shadow: 0 2px 8px rgba(0,0,0,0.15); white-space: pre-wrap; }
+    .message-bubble.user { background-color: rgba(255,255,255,0.2); border-bottom-right-radius: .5rem; }
+    .message-bubble.ai { background-color: var(--glass-dark-bg); border-bottom-left-radius: .5rem; }
+
+    .loading-indicator { opacity: 0.7; font-style: italic; color: #a0a0a0; animation: pulse 1.3s infinite; }
+
+    /* Input */
+    .message-input-container { width: 100%; display: flex; justify-content: center; padding: .75rem 0; }
+    .message-input-wrapper { width: 100%; max-width: 64rem; background: var(--glass-dark-bg); border: 1px solid var(--glass-dark-border); backdrop-filter: blur(12px); border-radius: var(--radius); padding: .75rem; display: flex; align-items: center; gap: .75rem; animation: slideUp 0.35s ease; }
+    .input-area { flex: 1; display: flex; gap: .75rem; }
+    #messageInput { flex: 1; background: none; border: none; color: #fff; font-size: 1rem; resize: none; outline: none; }
+    .send-btn { background: linear-gradient(135deg, var(--primary-500), var(--emerald-500)); border: none; color: #fff; padding: .65rem 1.3rem; border-radius: .65rem; font-weight: 600; cursor: pointer; transition: 0.25s; box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
+    .send-btn:hover { transform: scale(1.05); box-shadow: 0 8px 18px rgba(0,0,0,0.25); }
+
+    /* --- Footer --- */
+    .footer { background: var(--glass-dark-bg); backdrop-filter: blur(12px); border-top: 1px solid var(--glass-dark-border); padding: .9rem 1.25rem; font-size: 0.85rem; color: #9ca3af; }
+    .footer-content { max-width: 1280px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+    .footer-link { color: #9ca3af; text-decoration: none; }
+    .footer-link:hover { color: #fff; }
+    .separator { width: 1px; height: 1rem; background-color: #4b5563; }
+    .status-indicator { width: 0.5rem; height: 0.5rem; background-color: var(--primary-500); border-radius: 50%; }
 </style>
 </head>
 <body>
@@ -469,297 +120,102 @@
     <div class="background-gradient"></div>
     <div class="background-overlay"></div>
 
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <h2>Previous Chats</h2>
-            <button id="newChatBtn">New Chat</button>
-        </div>
-        <div class="chat-list" id="chatList">
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <h2>Menu</h2>
+        {% if user_info %}
+            <a href="#" onclick="newChat()">➕ New Chat</a>
+            <a href="#" onclick="saveChat()">💾 Save Chat</a>
+            <a href="/logout">🚪 Logout</a>
+            <h3>Previous Chats</h3>
+            <div class="sidebar-chats">
+                {% for chat in all_chats %}
+                    <a href="#" class="chat-link" onclick="loadChat({{ chat.id }})">{{ chat.title }}</a>
+                {% endfor %}
             </div>
-    </div>
+        {% else %}
+            <a href="/google-login">🚪 Login</a>
+            <p style="color:#9ca3af;font-size:0.85rem;">Login to save and access your chats.</p>
+        {% endif %}
+    </nav>
 
     <header class="header">
         <div class="header-content">
             <div class="logo-section">
                 <div class="logo-icon">
-                    <img src="https://placehold.co/100x100/A855F7/FFFFFF?text=A" alt="Logo" class="logo-img">
+                    <img src="https://placehold.co/100x100/A5C953/white?text=AI" alt="Logo" class="logo-img">
                 </div>
                 <div class="logo-text">
-                    <h1>EchooAI</h1>
-                    <p>AI Assistant</p>
+                    <h1>{{ assistant_name }}</h1>
+                    <p>Premium Chatbot</p>
                 </div>
             </div>
             <div class="header-actions">
-                <button class="header-btn" id="toggleSidebarBtn" style="display:none;">Chats</button>
-                <button class="header-btn" id="logoutBtn" style="display:none;">Logout</button>
+                <div class="hamburger" id="hamburger">
+                    <span></span><span></span><span></span>
+                </div>
+                {% if user_info %}
+                    <button class="header-btn">{{ user_info.given_name }}</button>
+                {% else %}
+                    <a href="/google-login" class="header-btn">Login</a>
+                {% endif %}
             </div>
         </div>
     </header>
 
     <main class="main-content">
-        <div class="welcome-screen" id="welcomeScreen">
-            <div class="welcome-content">
-                <div class="welcome-logo">
-                    <img src="https://placehold.co/100x100/A855F7/FFFFFF?text=A" alt="Logo" class="welcome-logo-img">
-                </div>
-                <h2 class="welcome-title">Welcome to EchooAI</h2>
-                <p class="welcome-description">Please log in to save your chat history and start a conversation.</p>
-                <button class="google-signin-btn" id="googleSignInBtn">
-                    <svg class="google-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#FFC107" d="M35.3 35.8c-1.6 4.9-5.9 8.2-11.3 8.2-6.7 0-12.2-5.4-12.2-12.2 0-6.7 5.4-12.2 12.2-12.2 3.1 0 5.8 1.2 7.8 3.2l5.7-5.7c-3.6-3.7-8.7-6-13.5-6-11.2 0-20.2 9-20.2 20.2s9 20.2 20.2 20.2c10.4 0 17.9-6.9 20.1-17.5.1-.6-.2-1.3-.7-1.5-.6-.2-1.3.1-1.5.7-.7 3.3-2.9 6.2-5.8 8.1z"/><path fill="#4CAF50" d="M44.5 20H24v8.5h11.4c-.9 4.3-4.7 7.4-9.9 7.4-5.8 0-10.5-4.7-10.5-10.5s4.7-10.5 10.5-10.5c3.2 0 6.1 1.5 8.1 4.1l6.3-4.1c-3.6-3.7-8.7-6-14.4-6-11.2 0-20.2 9-20.2 20.2s9 20.2 20.2 20.2c10.4 0 17.9-6.9 20.1-17.5.1-.6-.2-1.3-.7-1.5-.6-.2-1.3.1-1.5.7-.7 3.3-2.9 6.2-5.8 8.1z"/><path fill="#1976D2" d="M24 8.5c3.3 0 6.1 1.5 8.1 4.1l6.3-4.1c-3.6-3.7-8.7-6-14.4-6-11.2 0-20.2 9-20.2 20.2s9 20.2 20.2 20.2c10.4 0 17.9-6.9 20.1-17.5.1-.6-.2-1.3-.7-1.5-.6-.2-1.3.1-1.5.7-.7 3.3-2.9 6.2-5.8 8.1z"/><path fill="#F44336" d="M44.5 20H24v8.5h11.4c-.9 4.3-4.7 7.4-9.9 7.4-5.8 0-10.5-4.7-10.5-10.5s4.7-10.5 10.5-10.5c3.2 0 6.1 1.5 8.1 4.1l6.3-4.1c-3.6-3.7-8.7-6-14.4-6-11.2 0-20.2 9-20.2 20.2s9 20.2 20.2 20.2c10.4 0 17.9-6.9 20.1-17.5.1-.6-.2-1.3-.7-1.5-.6-.2-1.3.1-1.5.7-.7 3.3-2.9 6.2-5.8 8.1z"/></svg>
-                        Sign in with Google
-                    </button>
-                </div>
-            </div>
-
-            <div class="chat-area" id="chatArea" style="display:none;">
+        {% if user_info %}
+            <div class="chat-area" id="chatArea">
                 <div class="messages-container" id="messagesContainer"></div>
                 <div class="message-input-container">
                     <div class="message-input-wrapper">
                         <div class="input-area">
                             <textarea id="messageInput" placeholder="Type your message..."></textarea>
-                            <button class="send-btn" id="sendBtn" disabled>Send</button>
+                            <button class="send-btn" onclick="sendMessage()">Send</button>
                         </div>
                     </div>
                 </div>
             </div>
-        </main>
-
-        <footer class="footer">
-            <div class="footer-content">
-                <div class="footer-left">
-                    <span>&copy; 2025 EchooAI</span>
-                    <div class="separator"></div>
-                    <a href="#" class="footer-link">Privacy</a>
-                </div>
-                <div class="footer-right">
-                    <div class="status-indicator"></div>
-                    <span class="status-text">Online</span>
+        {% else %}
+            <div class="welcome-screen" id="welcomeScreen">
+                <div class="welcome-content">
+                    <div class="welcome-logo">
+                        <img src="https://placehold.co/100x100/A5C953/white?text=AI" alt="Logo" class="welcome-logo-img">
+                    </div>
+                    <h2 class="welcome-title">Welcome to {{ assistant_name }}</h2>
+                    <p class="welcome-description">Please log in to start chatting and save your conversation history.</p>
+                    <a href="/google-login" class="login-btn">Sign in with Google</a>
                 </div>
             </div>
-        </footer>
+        {% endif %}
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-left">
+                <span>&copy; 2025 {{ developer_name }}</span>
+                <div class="separator"></div>
+                <a href="#" class="footer-link">Privacy</a>
+            </div>
+            <div class="footer-right">
+                <div class="status-indicator"></div>
+                <span class="status-text">Online</span>
+            </div>
+        </div>
+    </footer>
 </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, getDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+<script>
+    const currentChatHistory = JSON.parse('{{ current_chat|tojson }}');
 
-    // --- Firebase Initialization (MANDATORY) ---
-    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-    // --- UI Elements ---
-    const welcomeScreen = document.getElementById('welcomeScreen');
-    const chatArea = document.getElementById('chatArea');
-    const googleSignInBtn = document.getElementById('googleSignInBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
-    const newChatBtn = document.getElementById('newChatBtn');
-    const chatList = document.getElementById('chatList');
-    const messagesContainer = document.getElementById('messagesContainer');
-    const messageInput = document.getElementById('messageInput');
-    const sendBtn = document.getElementById('sendBtn');
-
-    let userId = null;
-    let currentChatId = null;
-
-    // --- Authentication & UI State Management ---
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            userId = user.uid;
-            welcomeScreen.style.display = 'none';
-            chatArea.style.display = 'flex';
-            toggleSidebarBtn.style.display = 'block';
-            logoutBtn.style.display = 'block';
-            sendBtn.disabled = false;
-            
-            // Start listening for chats
-            setupChatListeners();
-        } else {
-            userId = null;
-            welcomeScreen.style.display = 'flex';
-            chatArea.style.display = 'none';
-            toggleSidebarBtn.style.display = 'none';
-            logoutBtn.style.display = 'none';
-            sendBtn.disabled = true;
-            messagesContainer.innerHTML = '';
-        }
-    });
-
-    // Initial sign-in with the custom token if available
-    async function initialAuth() {
-        try {
-            const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-            if (token) {
-                await signInWithCustomToken(auth, token);
-            }
-        } catch(error) {
-            console.error("Initial auth failed:", error);
-        }
-    }
-    initialAuth();
-
-    // --- Firebase Functions ---
-    const provider = new GoogleAuthProvider();
-    googleSignInBtn.addEventListener('click', () => {
-        signInWithPopup(auth, provider).catch(error => console.error("Google Sign-In Error: ", error));
-    });
-    logoutBtn.addEventListener('click', () => {
-        signOut(auth).catch(error => console.error("Logout Error: ", error));
-    });
-
-    // Setup Firestore listeners for chats
-    function setupChatListeners() {
-        const chatsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/chats`);
-        const q = query(chatsCollectionRef, orderBy("createdAt", "desc"));
-
-        onSnapshot(q, (querySnapshot) => {
-            let isFirstLoad = chatList.innerHTML === '';
-            const chats = [];
-            querySnapshot.forEach((doc) => {
-                chats.push({ id: doc.id, ...doc.data() });
-            });
-            renderChatList(chats);
-
-            if (isFirstLoad && chats.length > 0) {
-                // Load the most recent chat on first load
-                loadChat(chats[0].id);
-            } else if (isFirstLoad && chats.length === 0) {
-                // Start a new chat if no chats exist
-                startNewChat();
-            }
-        });
-    }
-
-    // Load and display messages for a specific chat
-    function loadChat(chatId) {
-        currentChatId = chatId;
-        messagesContainer.innerHTML = '';
-        const chatDocRef = doc(db, `artifacts/${appId}/users/${userId}/chats`, chatId);
-        
-        onSnapshot(chatDocRef, (doc) => {
-            if (doc.exists() && doc.id === currentChatId) {
-                const chatData = doc.data();
-                renderMessages(chatData.messages);
-            }
-        });
-    }
-
-    async function startNewChat() {
-        const newChatRef = await addDoc(collection(db, `artifacts/${appId}/users/${userId}/chats`), {
-            title: "New Chat",
-            messages: [],
-            createdAt: new Date()
-        });
-        loadChat(newChatRef.id);
-        closeSidebar();
-    }
-
-    async function sendMessage() {
-        const text = messageInput.value.trim();
-        if (!text || !currentChatId) return;
-
-        try {
-            // Get the current chat document to append the new message
-            const chatDocRef = doc(db, `artifacts/${appId}/users/${userId}/chats`, currentChatId);
-            const chatDoc = await getDoc(chatDocRef);
-            const messages = chatDoc.data().messages;
-
-            // Update the UI immediately with the user's message
-            displayMessage(text, 'user');
-            messageInput.value = '';
-
-            // Add the user's message to the Firestore document
-            messages.push({ text: text, sender: 'user', timestamp: new Date() });
-            
-            // If this is the first message, set the chat title
-            if (chatDoc.data().title === "New Chat" && messages.length === 1) {
-                await setDoc(chatDocRef, { title: text.substring(0, 30) + (text.length > 30 ? '...' : ''), messages: messages }, { merge: true });
-            } else {
-                await setDoc(chatDocRef, { messages: messages }, { merge: true });
-            }
-
-            // Simulate AI response
-            const aiText = "This is a simulated AI response. Your message was successfully saved!";
-            messages.push({ text: aiText, sender: 'ai', timestamp: new Date() });
-            await setDoc(chatDocRef, { messages: messages }, { merge: true });
-
-        } catch (err) {
-            console.error("Error sending message:", err);
-            displayMessage("Error sending message. Please try again.", 'ai');
-        }
-    }
-
-    // --- UI Rendering Functions ---
-    function renderChatList(chats) {
-        chatList.innerHTML = '';
-        chats.forEach(chat => {
-            const chatItem = document.createElement('div');
-            chatItem.classList.add('chat-item');
-            chatItem.textContent = chat.title || 'New Chat';
-            chatItem.addEventListener('click', () => {
-                loadChat(chat.id);
-                closeSidebar();
-            });
-            chatList.appendChild(chatItem);
-        });
-    }
-
-    function renderMessages(messages) {
-        messagesContainer.innerHTML = '';
-        if (!messages || messages.length === 0) {
-            const emptyMessage = document.createElement('div');
-            emptyMessage.textContent = 'Say something to start the conversation!';
-            emptyMessage.style.textAlign = 'center';
-            emptyMessage.style.color = '#9ca3af';
-            emptyMessage.style.marginTop = '2rem';
-            messagesContainer.appendChild(emptyMessage);
-        } else {
-            messages.forEach(msg => {
-                displayMessage(msg.text, msg.sender);
-            });
-        }
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
-    function displayMessage(text, sender) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${sender}`;
-        messageDiv.innerHTML = `
+    function addMessage(sender, text, isTyping = false) {
+        const container = document.getElementById('messagesContainer');
+        const messageElement = document.createElement('div');
+        messageElement.className = `message ${sender}`;
+        const avatarClass = sender === 'user' ? 'user-avatar' : 'ai-avatar';
+        const avatarText = sender === 'user' ? 'U' : 'AI';
+        messageElement.innerHTML = `
             <div class="message-content">
-                <div class="message-avatar ${sender}-avatar">${sender === 'user' ? 'U' : 'AI'}</div>
-                <div class="message-bubble ${sender}"><div class="message-text">${text}</div></div>
-            </div>`;
-        messagesContainer.appendChild(messageDiv);
-    }
-
-    // --- Sidebar UI Control ---
-    function toggleSidebar() {
-        sidebar.classList.toggle('open');
-        sidebarOverlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
-    }
-    function closeSidebar() {
-        sidebar.classList.remove('open');
-        sidebarOverlay.style.display = 'none';
-    }
-
-    // --- Event Listeners ---
-    toggleSidebarBtn.addEventListener('click', toggleSidebar);
-    sidebarOverlay.addEventListener('click', closeSidebar);
-    newChatBtn.addEventListener('click', startNewChat);
-    sendBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-</script>
-</body>
-</html>
+                <div class="message-avatar ${avatarClass}">${avatarText}</div>
+                <div class="message-bubble ${sender}">
+                    <div class="message-text ${is
