@@ -170,11 +170,13 @@
 </div>
 
 <script>
+    // Function to show the chat area and hide the welcome screen
     function startChat(){
         document.getElementById('welcomeScreen').style.display='none';
         document.getElementById('chatArea').style.display='flex';
     }
 
+    // Function to send a message to the server
     async function sendMessage(){
         const input = document.getElementById('messageInput');
         const text = input.value.trim();
@@ -182,6 +184,7 @@
 
         const container = document.getElementById('messagesContainer');
 
+        // Create and append the user's message bubble
         const userMessage = document.createElement('div');
         userMessage.className='message user';
         userMessage.innerHTML = `
@@ -194,6 +197,7 @@
         container.scrollTop=container.scrollHeight;
 
         try{
+            // Send the message to the server
             const response = await fetch("/chat", {
                 method:"POST",
                 headers:{"Content-Type":"application/json"},
@@ -202,6 +206,7 @@
             const data = await response.json();
             const aiText = data.reply;
 
+            // Create and append the AI's reply
             const aiMessage = document.createElement('div');
             aiMessage.className='message ai';
             aiMessage.innerHTML = `
@@ -224,6 +229,17 @@
             container.scrollTop=container.scrollHeight;
         }
     }
+
+    // Add event listener to the message input for the Enter key
+    document.getElementById('messageInput').addEventListener('keydown', function(event) {
+        // Check if the Enter key was pressed and the Shift key was not
+        if (event.key === 'Enter' && !event.shiftKey) {
+            // Prevent the default action (creating a new line)
+            event.preventDefault();
+            // Call the sendMessage function
+            sendMessage();
+        }
+    });
 </script>
 </body>
 </html>
