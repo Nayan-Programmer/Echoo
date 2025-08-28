@@ -6,7 +6,6 @@
 <title>EchooAI - AI Assistant</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    /* Aapka original CSS code yahan hai, isme koi changes nahi hai */
     * {margin:0;padding:0;box-sizing:border-box;}
     body {font-family:'Inter', system-ui, sans-serif;color:#fff;background:#000;overflow-x:hidden;}
     :root {
@@ -83,88 +82,16 @@
     @keyframes fadeIn {0%{opacity:0;transform:translateY(10px);}100%{opacity:1;transform:translateY(0);}}
     @keyframes slideUp {0%{transform:translateY(100%);}100%{transform:translateY(0);}}
     @keyframes pulse {0%,100%{opacity:1;}50%{opacity:0.5;}}
-    /* New CSS for chat history menu */
-    .menu-panel {
-        position: fixed;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: 300px;
-        background: var(--glass-dark-bg);
-        backdrop-filter: blur(10px);
-        border-right: 1px solid var(--glass-dark-border);
-        transform: translateX(-100%);
-        transition: transform 0.3s ease-in-out;
-        z-index: 200;
-        padding: 2rem 1.5rem;
-        display: flex;
-        flex-direction: column;
-    }
-    .menu-panel.open {
-        transform: translateX(0);
-    }
-    .menu-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-    }
-    .menu-header h2 {
-        font-size: 1.5rem;
-    }
-    .menu-header button {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 1.5rem;
-        cursor: pointer;
-    }
-    .chat-list {
-        flex-grow: 1;
-        overflow-y: auto;
-    }
-    .chat-item {
-        padding: 0.75rem;
-        border-radius: 0.5rem;
-        color: #d1d5db;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-    }
-    .chat-item:hover {
-        background: rgba(255, 255, 255, 0.1);
-    }
-    .new-chat-btn-menu {
-        padding: 1rem;
-        background: linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);
-        border: none;
-        color: white;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        font-size: 1rem;
-        margin-top: 1rem;
-        transition: transform 0.2s ease;
-    }
-    .new-chat-btn-menu:hover {
-        transform: translateY(-2px);
-    }
-    #menuToggleBtn {
-        display: block; /* Show menu button on all screen sizes */
-    }
 </style>
 </head>
 <body>
-<div class="background-gradient"></div>
-<div class="background-overlay"></div>
-
 <div class="app">
+    <div class="background-gradient"></div>
+    <div class="background-overlay"></div>
+
     <header class="header">
         <div class="header-content">
             <div class="logo-section">
-                {% if user_info %}
-                <button id="menuToggleBtn" class="header-btn" onclick="toggleMenu()">
-                    <i class="fas fa-bars"></i>
-                </button>
-                {% endif %}
                 <div class="logo-icon">
                     <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-img">
                 </div>
@@ -190,7 +117,7 @@
                     <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="welcome-logo-img">
                 </div>
                 {% if user_info %}
-                    <h2 class="welcome-title">Welcome, {{ user_info.get('given_name', 'User') }}! 👋</h2>
+                    <h2 class="welcome-title">Welcome, {{ user_info.get('name', 'User') }}! 👋</h2>
                     <p class="welcome-description">You're logged in. Click below to start chatting with EchooAI!</p>
                     <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
                 {% else %}
@@ -202,7 +129,20 @@
         </div>
 
         <div class="chat-area" id="chatArea" style="display:none;">
-            <div class="messages-container" id="messagesContainer"></div>
+            <div class="messages-container" id="messagesContainer">
+                {% for message in chat_history %}
+                <div class="message {% if message.sender == 'user' %}user{% else %}ai{% endif %}">
+                    <div class="message-content">
+                        <div class="message-avatar {% if message.sender == 'user' %}user-avatar{% else %}ai-avatar{% endif %}">
+                            {% if message.sender == 'user' %}{{ user_info.get('name', 'U') | first }}{% else %}AI{% endif %}
+                        </div>
+                        <div class="message-bubble {% if message.sender == 'user' %}user{% else %}ai{% endif %}">
+                            <div class="message-text">{{ message.message }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
             <div class="message-input-container">
                 <div class="message-input-wrapper">
                     <div class="input-area">
@@ -229,130 +169,59 @@
     </footer>
 </div>
 
-<div class="menu-panel" id="menuPanel">
-    <div class="menu-header">
-        <h2>Chats</h2>
-        <button onclick="toggleMenu()"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="chat-list" id="chatList">
-        {% for chat in previous_chats %}
-        <div class="chat-item" onclick="loadChat({{ chat.id }})">
-            {{ chat.chat_title }}
-        </div>
-        {% endfor %}
-    </div>
-    <button class="new-chat-btn-menu" onclick="startNewChat()">+ New Chat</button>
-</div>
-
-<script src="https://kit.fontawesome.com/a076d05399.js"></script>
 <script>
-    let currentChatId = null;
-
-    function toggleMenu() {
-        const menuPanel = document.getElementById('menuPanel');
-        menuPanel.classList.toggle('open');
-    }
-
     function startChat(){
         document.getElementById('welcomeScreen').style.display='none';
         document.getElementById('chatArea').style.display='flex';
-        const previousChatsExist = document.getElementById('chatList').children.length > 0;
-        if (!previousChatsExist) {
-            startNewChat();
-        } else {
-            // Load the most recent chat by default
-            const mostRecentChat = document.getElementById('chatList').children[0];
-            if (mostRecentChat) {
-                const chatId = mostRecentChat.dataset.chatId;
-                if (chatId) {
-                    loadChat(chatId);
-                }
-            }
-        }
-    }
-
-    function addMessageToUI(text, role){
-        const container = document.getElementById('messagesContainer');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${role === 'user' ? 'user' : 'ai'}`;
-        const avatarText = role === 'user' ? 'U' : 'AI';
-        const avatarClass = role === 'user' ? 'user-avatar' : 'ai-avatar';
-        const bubbleClass = role === 'user' ? 'user' : 'ai';
-        messageDiv.innerHTML = `
-            <div class="message-content">
-                <div class="message-avatar ${avatarClass}">${avatarText}</div>
-                <div class="message-bubble ${bubbleClass}"><div class="message-text">${text}</div></div>
-            </div>`;
-        container.appendChild(messageDiv);
-        container.scrollTop = container.scrollHeight;
     }
 
     async function sendMessage(){
         const input = document.getElementById('messageInput');
         const text = input.value.trim();
         if(!text) return;
-        if (!currentChatId) {
-            alert("Please select a chat or start a new one!");
-            return;
-        }
 
-        addMessageToUI(text, "user");
-        input.value = '';
+        const container = document.getElementById('messagesContainer');
+
+        const userMessage = document.createElement('div');
+        userMessage.className='message user';
+        userMessage.innerHTML = `
+            <div class="message-content">
+                <div class="message-avatar user-avatar">U</div>
+                <div class="message-bubble user"><div class="message-text">${text}</div></div>
+            </div>`;
+        container.appendChild(userMessage);
+        input.value='';
+        container.scrollTop=container.scrollHeight;
 
         try{
             const response = await fetch("/chat", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({message: text, chat_id: currentChatId})
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({message:text})
             });
             const data = await response.json();
             const aiText = data.reply;
-            addMessageToUI(aiText, "assistant");
+
+            const aiMessage = document.createElement('div');
+            aiMessage.className='message ai';
+            aiMessage.innerHTML = `
+                <div class="message-content">
+                    <div class="message-avatar ai-avatar">AI</div>
+                    <div class="message-bubble ai"><div class="message-text">${aiText}</div></div>
+                </div>`;
+            container.appendChild(aiMessage);
+            container.scrollTop=container.scrollHeight;
         } catch(err){
             console.error(err);
-            addMessageToUI("Error contacting AI server.", "assistant");
-        }
-    }
-
-    async function loadChat(chatId) {
-        currentChatId = chatId;
-        document.getElementById('welcomeScreen').style.display = 'none';
-        document.getElementById('chatArea').style.display = 'flex';
-        const container = document.getElementById('messagesContainer');
-        container.innerHTML = '';
-        
-        try {
-            const response = await fetch(`/chat-history/${chatId}`);
-            const data = await response.json();
-            if (response.ok) {
-                data.history.forEach(msg => {
-                    addMessageToUI(msg.content, msg.role);
-                });
-                container.scrollTop = container.scrollHeight;
-            } else {
-                addMessageToUI(data.error || "Failed to load chat history.", "assistant");
-            }
-        } catch (error) {
-            console.error(error);
-            addMessageToUI("Error loading chat history.", "assistant");
-        }
-        toggleMenu(); // Close menu after loading chat
-    }
-
-    async function startNewChat() {
-        try {
-            const response = await fetch("/new-chat", { method: "POST" });
-            const data = await response.json();
-            if (response.ok) {
-                currentChatId = data.chat_id;
-                document.getElementById('messagesContainer').innerHTML = '';
-                data.history.forEach(msg => {
-                    addMessageToUI(msg.content, msg.role);
-                });
-                window.location.reload(); // Reload to update sidebar
-            }
-        } catch (error) {
-            console.error("Error creating new chat:", error);
+            const errorMessage = document.createElement('div');
+            errorMessage.className='message ai';
+            errorMessage.innerHTML = `
+                <div class="message-content">
+                    <div class="message-avatar ai-avatar">AI</div>
+                    <div class="message-bubble ai"><div class="message-text">Error contacting AI server.</div></div>
+                </div>`;
+            container.appendChild(errorMessage);
+            container.scrollTop=container.scrollHeight;
         }
     }
 </script>
