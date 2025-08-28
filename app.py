@@ -5,7 +5,7 @@ from groq import Groq
 import requests, os
 from authlib.integrations.flask_client import OAuth
 
-# Load environment variables
+# Load environment variables from .env file
 env = dotenv_values(".env")
 Username = env.get("Username", "User")
 AssistantName = env.get("AssistantName", "EchooAI")
@@ -15,7 +15,7 @@ GoogleCSEID = env.get("GoogleCSEID", "")
 DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
 
-# Google OAuth credentials
+# Google OAuth credentials from .env
 GoogleClientID = env.get("GOOGLE_CLIENT_ID")
 GoogleClientSecret = env.get("GOOGLE_CLIENT_SECRET")
 
@@ -37,6 +37,9 @@ oauth.register(
 
 # --- Math Solver ---
 def solve_math(query):
+    """
+    Solves mathematical equations using the sympy library.
+    """
     try:
         expr = sympify(query)
         simplified = simplify(expr)
@@ -51,6 +54,9 @@ def solve_math(query):
 
 # --- Google Search ---
 def GoogleSearch(query):
+    """
+    Performs a custom Google Search and returns snippets.
+    """
     try:
         url = "https://www.googleapis.com/customsearch/v1"
         params = {"q": query, "key": GoogleAPIKey, "cx": GoogleCSEID}
@@ -63,7 +69,12 @@ def GoogleSearch(query):
         return f"(Search Error: {e})"
 
 # --- AI Engine ---
-def RealtimeEngine(prompt):
+# Now accepts chat history and user name
+def RealtimeEngine(prompt, chat_history, user_name):
+    """
+    Main AI engine that handles various types of queries.
+    It now includes chat history for context.
+    """
     # Math queries
     if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
         return solve_math(prompt)
@@ -80,12 +91,20 @@ def RealtimeEngine(prompt):
     # Groq AI
     try:
         client = Groq(api_key=GroqAPIKey)
+        
+        # Build the messages list for the API call
+        messages = [
+            # System message with user's name for context
+            {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}. The current user is {user_name}. Maintain a conversational and friendly tone."},
+            # Add previous chat history
+            *chat_history,
+            # Add the new user prompt
+            {"role": "user", "content": prompt}
+        ]
+        
         response = client.chat.completions.create(
             model="llama3-70b-8192",
-            messages=[
-                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}."},
-                {"role": "user", "content": prompt}
-            ],
+            messages=messages,
             max_tokens=500
         )
         return response.choices[0].message.content
@@ -97,7 +116,12 @@ def RealtimeEngine(prompt):
 @app.route("/", methods=["GET"])
 def home():
     user_info = session.get('user_info')
-    return render_template("index.html", assistant_name=AssistantName, user_info=user_info)
+    # Get chat history from session, default to empty list if not found
+    chat_history = session.get('chat_history', [])
+    return render_template("index.html", 
+                           assistant_name=AssistantName, 
+                           user_info=user_info, 
+                           chat_history=chat_history)
 
 # Route to initiate Google login
 @app.route('/google-login')
@@ -110,14 +134,12 @@ def google_login():
 def google_auth():
     try:
         token = oauth.google.authorize_access_token()
-        
-        # Pass the nonce from the session to the parse_id_token function
         user = oauth.google.parse_id_token(token, nonce=session.get('nonce'))
         
-        # Store user info and clear the nonce from the session
         session['user_info'] = user
         session.pop('nonce', None)
-
+        
+        # Redirect to home page after successful login
         return redirect(url_for('home'))
     except Exception as e:
         print(f"Authentication Error: {e}")
@@ -126,12 +148,15 @@ def google_auth():
 # Logout route
 @app.route('/logout')
 def logout():
+    # Clear both user info and chat history from the session
     session.pop('user_info', None)
+    session.pop('chat_history', None)
     return redirect(url_for('home'))
 
 @app.route("/chat", methods=["POST"])
 def chat():
     user_info = session.get('user_info')
+    # Check if user is logged in
     if not user_info:
         return jsonify({"reply": "Please log in with Google to use the chat."}), 401
 
@@ -139,8 +164,23 @@ def chat():
     user_prompt = data.get("message", "")
     if not user_prompt:
         return jsonify({"reply": "Please enter a message."}), 400
+
+    # Get user's first name, or default to 'User'
+    user_name = user_info.get('given_name', 'User')
+
+    # Get chat history from session
+    chat_history = session.get('chat_history', [])
     
-    reply = RealtimeEngine(user_prompt)
+    # Get the AI's reply, passing the history and user name
+    reply = RealtimeEngine(user_prompt, chat_history, user_name)
+
+    # Append user's message and AI's reply to history
+    chat_history.append({"role": "user", "content": user_prompt})
+    chat_history.append({"role": "assistant", "content": reply})
+
+    # Save the updated history back to the session
+    session['chat_history'] = chat_history
+    
     return jsonify({"reply": reply})
 
 # Serve static logo if needed
