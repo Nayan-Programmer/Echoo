@@ -35,6 +35,8 @@ google_bp = make_google_blueprint(
 )
 
 # Blueprint ko app ke saath register karein
+# NOTE: Flask-Dance is URL par redirect karega:
+# https://echooai.in/login/google/authorized
 app.register_blueprint(google_bp, url_prefix="/login")
 
 # Initialize Groq client
