@@ -108,10 +108,20 @@ def google_login():
 # Route to handle Google's callback
 @app.route('/google/auth/')
 def google_auth():
-    token = oauth.google.authorize_access_token()
-    user = oauth.google.parse_id_token(token)
-    session['user_info'] = user
-    return redirect(url_for('home'))
+    try:
+        token = oauth.google.authorize_access_token()
+        
+        # Pass the nonce from the session to the parse_id_token function
+        user = oauth.google.parse_id_token(token, nonce=session.get('nonce'))
+        
+        # Store user info and clear the nonce from the session
+        session['user_info'] = user
+        session.pop('nonce', None)
+
+        return redirect(url_for('home'))
+    except Exception as e:
+        print(f"Authentication Error: {e}")
+        return redirect(url_for('home'))
 
 # Logout route
 @app.route('/logout')
