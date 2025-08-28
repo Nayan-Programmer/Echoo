@@ -1,11 +1,9 @@
-# app.py
-
-from flask import Flask, request, jsonify, render_template, send_from_directory, redirect, url_for, session
-from flask_dance.contrib.google import make_google_blueprint, google
+from flask import Flask, request, jsonify, render_template, send_from_directory, session, redirect, url_for
 from sympy import sympify, solve, simplify, pretty
 from dotenv import dotenv_values
 from groq import Groq
 import requests, os
+from authlib.integrations.flask_client import OAuth
 
 # Load environment variables
 env = dotenv_values(".env")
@@ -17,30 +15,25 @@ GoogleCSEID = env.get("GoogleCSEID", "")
 DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
 
-# Flask app aur session ko initialize karein
+# Google OAuth credentials
+GoogleClientID = env.get("GOOGLE_CLIENT_ID")
+GoogleClientSecret = env.get("GOOGLE_CLIENT_SECRET")
+
+# Initialize Flask app
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = os.urandom(24) # Session suraksha ke liye
+app.secret_key = os.urandom(24)
 
-# Google OAuth credentials ko set karein
-# Aapko in credentials ko Google Cloud Console se lena hoga
-GOOGLE_CLIENT_ID = env.get("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = env.get("GOOGLE_CLIENT_SECRET", "")
+# Initialize Authlib OAuth
+oauth = OAuth(app)
 
-# Flask-Dance Google blueprint banayein
-# scope mein user ki profile aur email access karne ki permission di gayi hai
-google_bp = make_google_blueprint(
-    client_id=GOOGLE_CLIENT_ID,
-    client_secret=GOOGLE_CLIENT_SECRET,
-    scope=["https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"],
+# Register the Google OAuth client
+oauth.register(
+    name='google',
+    client_id=GoogleClientID,
+    client_secret=GoogleClientSecret,
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'}
 )
-
-# Blueprint ko app ke saath register karein
-# NOTE: Flask-Dance is URL par redirect karega:
-# https://echooai.in/login/google/authorized
-app.register_blueprint(google_bp, url_prefix="/login")
-
-# Initialize Groq client
-client = Groq(api_key=GroqAPIKey)
 
 # --- Math Solver ---
 def solve_math(query):
@@ -86,6 +79,7 @@ def RealtimeEngine(prompt):
 
     # Groq AI
     try:
+        client = Groq(api_key=GroqAPIKey)
         response = client.chat.completions.create(
             model="llama3-70b-8192",
             messages=[
@@ -102,30 +96,44 @@ def RealtimeEngine(prompt):
 # --- Routes ---
 @app.route("/", methods=["GET"])
 def home():
-    if not google.authorized:
-        # User logged in nahi hai, unko login page par redirect karein
-        return redirect(url_for("google.login"))
+    user_info = session.get('user_info')
+    return render_template("index.html", assistant_name=AssistantName, user_info=user_info)
 
-    # Login hone ke baad, user ki profile data lein
+# Route to initiate Google login
+@app.route('/google-login')
+def google_login():
+    redirect_uri = url_for('google_auth', _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+# Route to handle Google's callback
+@app.route('/google/auth/')
+def google_auth():
     try:
-        resp = google.get("/oauth2/v2/userinfo")
-        resp.raise_for_status()
-        profile_data = resp.json()
+        token = oauth.google.authorize_access_token()
         
-        # Session mein user data store karein
-        session['user'] = profile_data
+        # Pass the nonce from the session to the parse_id_token function
+        user = oauth.google.parse_id_token(token, nonce=session.get('nonce'))
         
-        # index.html ko render karein, user data ke saath
-        return render_template("index.html", user=profile_data)
+        # Store user info and clear the nonce from the session
+        session['user_info'] = user
+        session.pop('nonce', None)
+
+        return redirect(url_for('home'))
     except Exception as e:
-        print(f"Error fetching profile: {e}")
-        return redirect(url_for("google.login"))
+        print(f"Authentication Error: {e}")
+        return redirect(url_for('home'))
+
+# Logout route
+@app.route('/logout')
+def logout():
+    session.pop('user_info', None)
+    return redirect(url_for('home'))
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    # Sirf authorized users ko chat karne dein
-    if not google.authorized:
-        return jsonify({"reply": "Please log in to chat."}), 401
+    user_info = session.get('user_info')
+    if not user_info:
+        return jsonify({"reply": "Please log in with Google to use the chat."}), 401
 
     data = request.get_json()
     user_prompt = data.get("message", "")
@@ -134,12 +142,6 @@ def chat():
     
     reply = RealtimeEngine(user_prompt)
     return jsonify({"reply": reply})
-
-@app.route("/logout")
-def logout():
-    # Session se user data hata dein aur login page par wapas le jayein
-    session.clear()
-    return redirect(url_for("google.login"))
 
 # Serve static logo if needed
 @app.route('/logo/<path:filename>')
