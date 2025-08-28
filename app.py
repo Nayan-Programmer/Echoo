@@ -63,7 +63,10 @@ def GoogleSearch(query):
         return f"(Search Error: {e})"
 
 # --- AI Engine ---
-def RealtimeEngine(prompt):
+def RealtimeEngine(prompt, user_info=None):
+    # Determine the user's name for the system prompt
+    user_name = user_info.get('name', 'User') if user_info else 'User'
+
     # Math queries
     if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
         return solve_math(prompt)
@@ -83,7 +86,7 @@ def RealtimeEngine(prompt):
         response = client.chat.completions.create(
             model="llama3-70b-8192",
             messages=[
-                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}."},
+                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}. The current user's name is {user_name}."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=500
@@ -148,7 +151,8 @@ def chat():
     chat_history.append({"sender": "user", "message": user_prompt})
     session['chat_history'] = chat_history # Session update karein
 
-    reply = RealtimeEngine(user_prompt)
+    # Pass the user_info to the RealtimeEngine
+    reply = RealtimeEngine(user_prompt, user_info)
 
     # AI reply ko history mein add karein
     chat_history.append({"sender": "ai", "message": reply})
@@ -164,3 +168,4 @@ def logo(filename):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
