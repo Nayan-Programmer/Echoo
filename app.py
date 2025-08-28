@@ -1,174 +1,166 @@
-import os
-import sqlite3
-import json
-from flask import Flask, render_template, redirect, url_for, session, request, jsonify
+from flask import Flask, request, jsonify, render_template, send_from_directory, session, redirect, url_for
+from sympy import sympify, solve, simplify, pretty
+from dotenv import dotenv_values
+from groq import Groq
+import requests, os
 from authlib.integrations.flask_client import OAuth
-from authlib.common.security import generate_token
-from groq import Groq  # Import the Groq library
 
-# Load environment variables from a .env file
-from dotenv import load_dotenv
-load_dotenv()
+# Load environment variables
+env = dotenv_values(".env")
+Username = env.get("Username", "User")
+AssistantName = env.get("AssistantName", "EchooAI")
+GroqAPIKey = env.get("GroqAPIKey", "")
+GoogleAPIKey = env.get("GoogleAPIKey", "")
+GoogleCSEID = env.get("GoogleCSEID", "")
+DeveloperName = env.get("DeveloperName", "Nayan")
+FullInformation = env.get("FullInformation", "")
 
-# --- Configuration ---
-app = Flask(__name__)
-# It's crucial to set a secret key for session management
+# Google OAuth credentials
+GoogleClientID = env.get("GOOGLE_CLIENT_ID")
+GoogleClientSecret = env.get("GOOGLE_CLIENT_SECRET")
+
+# Initialize Flask app
+app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.urandom(24)
 
-# Configure Authlib for Google OAuth
+# Initialize Authlib OAuth
 oauth = OAuth(app)
+
+# Register the Google OAuth client
 oauth.register(
     name='google',
+    client_id=GoogleClientID,
+    client_secret=GoogleClientSecret,
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_id=os.environ.get('GOOGLE_CLIENT_ID'),
-    client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
-    client_kwargs={
-        'scope': 'openid email profile'
-    }
+    client_kwargs={'scope': 'openid email profile'}
 )
 
-# Configure Groq client
-groq_client = Groq(
-    api_key=os.environ.get("GROQ_API_KEY"),
-)
-
-# --- Database Setup ---
-DATABASE = 'chat_history.db'
-
-def get_db():
-    """Connects to the specified database."""
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def create_table():
-    """Creates the necessary chats table if it doesn't exist."""
-    with get_db() as db:
-        cursor = db.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS chats (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_email TEXT NOT NULL,
-                chat_title TEXT NOT NULL,
-                history TEXT NOT NULL
-            );
-        """)
-        db.commit()
-
-# Ensure the table exists when the app starts
-create_table()
-
-# --- Groq API Call Function ---
-def get_groq_response(messages):
-    """Sends a list of messages to the Groq API and returns the response."""
+# --- Math Solver ---
+def solve_math(query):
     try:
-        chat_completion = groq_client.chat.completions.create(
-            messages=messages,
-            model="llama3-8b-8192",  # You can choose a different model here
-            stream=False,
+        expr = sympify(query)
+        simplified = simplify(expr)
+        solution = solve(expr)
+        return (
+            f"Step 1: Expression → {pretty(expr)}\n"
+            f"Step 2: Simplified → {pretty(simplified)}\n"
+            f"Step 3: Solution → {solution if solution else 'No closed form solution'}"
         )
-        return chat_completion.choices[0].message.content
     except Exception as e:
-        print(f"Error calling Groq API: {e}")
-        return "Sorry, I am unable to respond at the moment."
+        return f"Math Error: {e}"
+
+# --- Google Search ---
+def GoogleSearch(query):
+    try:
+        url = "https://www.googleapis.com/customsearch/v1"
+        params = {"q": query, "key": GoogleAPIKey, "cx": GoogleCSEID}
+        r = requests.get(url, params=params)
+        data = r.json()
+        if "items" in data:
+            return "\n".join([item["snippet"] for item in data["items"][:3]])
+        return "No results found."
+    except Exception as e:
+        return f"(Search Error: {e})"
+
+# --- AI Engine ---
+def RealtimeEngine(prompt):
+    # Math queries
+    if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
+        return solve_math(prompt)
+
+    # Google search
+    if prompt.lower().startswith("search:"):
+        query = prompt.replace("search:", "").strip()
+        return GoogleSearch(query)
+
+    # Developer info
+    if "who is your developer" in prompt.lower() or "who created you" in prompt.lower():
+        return f"My developer is {DeveloperName}. {FullInformation}"
+
+    # Groq AI
+    try:
+        client = Groq(api_key=GroqAPIKey)
+        response = client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=[
+                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=500
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(e)
+        return f"Groq backend error: {e}"
 
 # --- Routes ---
-
-@app.route('/')
+@app.route("/", methods=["GET"])
 def home():
-    """Renders the home page. Redirects to login if user is not authenticated."""
     user_info = session.get('user_info')
-    if not user_info:
-        return render_template('login.html')
-    
-    user_email = user_info['email']
-    with get_db() as db:
-        cursor = db.cursor()
-        cursor.execute("SELECT id, chat_title, history FROM chats WHERE user_email = ?", (user_email,))
-        chats = cursor.fetchall()
-        
-    return render_template('index.html', user=user_info, chats=chats)
+    # Agar user logged in hai, toh chat history load karein
+    chat_history = session.get('chat_history', [])
+    return render_template("index.html", assistant_name=AssistantName, user_info=user_info, chat_history=chat_history)
 
-@app.route('/login')
-def login():
-    """Starts the Google OAuth flow."""
-    session['nonce'] = generate_token()
+# Route to initiate Google login
+@app.route('/google-login')
+def google_login():
     redirect_uri = url_for('google_auth', _external=True)
+    session['nonce'] = os.urandom(32).hex()
     return oauth.google.authorize_redirect(redirect_uri, nonce=session['nonce'])
 
+# Route to handle Google's callback
 @app.route('/google/auth/')
 def google_auth():
-    """Callback route for Google authentication."""
     try:
-        token = oauth.google.authorize_access_token(nonce=session.get('nonce'))
-        user = oauth.google.parse_id_token(token)
+        token = oauth.google.authorize_access_token()
+        user = oauth.google.parse_id_token(token, nonce=session.get('nonce'))
+        
+        # User info aur chat history ko session mein store karein
         session['user_info'] = user
+        session['chat_history'] = []  # Nayi chat session shuru karein
+        session.pop('nonce', None)
 
-        user_email = user['email']
-        with get_db() as db:
-            cursor = db.cursor()
-            cursor.execute("SELECT id FROM chats WHERE user_email = ?", (user_email,))
-            existing_chat = cursor.fetchone()
-
-            if not existing_chat:
-                default_history = json.dumps([
-                    {"role": "assistant", "content": f"Hi {user.get('given_name', 'User')}! How can I help you today?"}
-                ])
-                cursor.execute("INSERT INTO chats (user_email, chat_title, history) VALUES (?, ?, ?)", 
-                               (user_email, 'New Chat', default_history))
-                db.commit()
-            
         return redirect(url_for('home'))
     except Exception as e:
-        session.pop('user_info', None)
+        print(f"Authentication Error: {e}")
         return redirect(url_for('home'))
 
+# Logout route
 @app.route('/logout')
 def logout():
-    """Clears the session and logs the user out."""
     session.pop('user_info', None)
+    session.pop('chat_history', None) # Chat history ko bhi delete karein
     return redirect(url_for('home'))
 
-@app.route('/chat', methods=['POST'])
+@app.route("/chat", methods=["POST"])
 def chat():
-    """Handles the chat conversation with the Groq API."""
     user_info = session.get('user_info')
     if not user_info:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({"reply": "Please log in with Google to use the chat."}), 401
+
+    data = request.get_json()
+    user_prompt = data.get("message", "")
+    if not user_prompt:
+        return jsonify({"reply": "Please enter a message."}), 400
     
-    data = request.json
-    user_message = data.get('message')
-    chat_id = data.get('chat_id')
-    user_email = user_info['email']
+    # User message ko history mein add karein
+    chat_history = session.get('chat_history', [])
+    chat_history.append({"sender": "user", "message": user_prompt})
+    session['chat_history'] = chat_history # Session update karein
 
-    if not user_message:
-        return jsonify({'error': 'Message cannot be empty'}), 400
+    reply = RealtimeEngine(user_prompt)
 
-    with get_db() as db:
-        cursor = db.cursor()
-        cursor.execute("SELECT history FROM chats WHERE id = ? AND user_email = ?", (chat_id, user_email))
-        chat_row = cursor.fetchone()
+    # AI reply ko history mein add karein
+    chat_history.append({"sender": "ai", "message": reply})
+    session['chat_history'] = chat_history # Session update karein
+    
+    return jsonify({"reply": reply})
 
-        if not chat_row:
-            return jsonify({'error': 'Chat not found'}), 404
+# Serve static logo if needed
+@app.route('/logo/<path:filename>')
+def logo(filename):
+    return send_from_directory('static', filename)
 
-        history = json.loads(chat_row['history'])
-
-        # Add the user's message to the history
-        history.append({"role": "user", "content": user_message})
-
-        # Get response from Groq
-        groq_response = get_groq_response(history)
-
-        # Add the assistant's response to the history
-        history.append({"role": "assistant", "content": groq_response})
-
-        # Update the database
-        new_history_json = json.dumps(history)
-        cursor.execute("UPDATE chats SET history = ? WHERE id = ?", (new_history_json, chat_id))
-        db.commit()
-
-        return jsonify({'response': groq_response})
-
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
