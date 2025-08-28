@@ -7,3 +7,4 @@ gunicorn
 requests
 sympy
 flask-dance
+AuthLib
