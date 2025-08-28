@@ -4,8 +4,9 @@ from dotenv import dotenv_values
 from groq import Groq
 import requests, os
 from authlib.integrations.flask_client import OAuth
+import time
 
-# Load environment variables from .env file
+# Load environment variables
 env = dotenv_values(".env")
 Username = env.get("Username", "User")
 AssistantName = env.get("AssistantName", "EchooAI")
@@ -15,7 +16,7 @@ GoogleCSEID = env.get("GoogleCSEID", "")
 DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
 
-# Google OAuth credentials from .env
+# Google OAuth credentials
 GoogleClientID = env.get("GOOGLE_CLIENT_ID")
 GoogleClientSecret = env.get("GOOGLE_CLIENT_SECRET")
 
@@ -69,7 +70,6 @@ def GoogleSearch(query):
         return f"(Search Error: {e})"
 
 # --- AI Engine ---
-# Now accepts chat history and user name
 def RealtimeEngine(prompt, chat_history, user_name):
     """
     Main AI engine that handles various types of queries.
@@ -116,12 +116,14 @@ def RealtimeEngine(prompt, chat_history, user_name):
 @app.route("/", methods=["GET"])
 def home():
     user_info = session.get('user_info')
-    # Get chat history from session, default to empty list if not found
-    chat_history = session.get('chat_history', [])
+    # Get current chat history and all previous chats from session
+    current_chat = session.get('current_chat', [])
+    all_chats = session.get('all_chats', [])
     return render_template("index.html", 
                            assistant_name=AssistantName, 
                            user_info=user_info, 
-                           chat_history=chat_history)
+                           current_chat=current_chat,
+                           all_chats=all_chats)
 
 # Route to initiate Google login
 @app.route('/google-login')
@@ -139,7 +141,8 @@ def google_auth():
         session['user_info'] = user
         session.pop('nonce', None)
         
-        # Redirect to home page after successful login
+        # Clear current chat on login
+        session.pop('current_chat', None)
         return redirect(url_for('home'))
     except Exception as e:
         print(f"Authentication Error: {e}")
@@ -148,15 +151,14 @@ def google_auth():
 # Logout route
 @app.route('/logout')
 def logout():
-    # Clear both user info and chat history from the session
     session.pop('user_info', None)
-    session.pop('chat_history', None)
+    session.pop('current_chat', None)
+    session.pop('all_chats', None)
     return redirect(url_for('home'))
 
 @app.route("/chat", methods=["POST"])
 def chat():
     user_info = session.get('user_info')
-    # Check if user is logged in
     if not user_info:
         return jsonify({"reply": "Please log in with Google to use the chat."}), 401
 
@@ -165,25 +167,54 @@ def chat():
     if not user_prompt:
         return jsonify({"reply": "Please enter a message."}), 400
 
-    # Get user's first name, or default to 'User'
     user_name = user_info.get('given_name', 'User')
 
-    # Get chat history from session
-    chat_history = session.get('chat_history', [])
+    current_chat = session.get('current_chat', [])
     
-    # Get the AI's reply, passing the history and user name
-    reply = RealtimeEngine(user_prompt, chat_history, user_name)
+    reply = RealtimeEngine(user_prompt, current_chat, user_name)
 
-    # Append user's message and AI's reply to history
-    chat_history.append({"role": "user", "content": user_prompt})
-    chat_history.append({"role": "assistant", "content": reply})
+    current_chat.append({"role": "user", "content": user_prompt})
+    current_chat.append({"role": "assistant", "content": reply})
 
-    # Save the updated history back to the session
-    session['chat_history'] = chat_history
+    session['current_chat'] = current_chat
     
     return jsonify({"reply": reply})
 
-# Serve static logo if needed
+@app.route("/save-chat", methods=["POST"])
+def save_chat():
+    """Saves the current chat history to the list of all chats."""
+    current_chat = session.get('current_chat', [])
+    if current_chat:
+        all_chats = session.get('all_chats', [])
+        # Create a title for the chat, e.g., the first user message
+        title = current_chat[0]['content'][:30] + '...' if len(current_chat[0]['content']) > 30 else current_chat[0]['content']
+        chat_id = int(time.time()) # Unique ID based on timestamp
+        
+        all_chats.append({
+            'id': chat_id,
+            'title': title,
+            'history': current_chat
+        })
+        session['all_chats'] = all_chats
+    return jsonify({"status": "Chat saved."})
+
+@app.route("/new-chat", methods=["POST"])
+def new_chat():
+    """Clears the current chat history to start a new conversation."""
+    session.pop('current_chat', None)
+    return jsonify({"status": "New chat started."})
+
+@app.route("/load-chat/<int:chat_id>", methods=["GET"])
+def load_chat(chat_id):
+    """Loads a specific chat from the all_chats list into the current_chat session."""
+    all_chats = session.get('all_chats', [])
+    chat_to_load = next((chat for chat in all_chats if chat['id'] == chat_id), None)
+    if chat_to_load:
+        session['current_chat'] = chat_to_load['history']
+        return jsonify({"status": "Chat loaded.", "history": chat_to_load['history']})
+    return jsonify({"status": "Chat not found."}), 404
+
+# Serve static logo
 @app.route('/logo/<path:filename>')
 def logo(filename):
     return send_from_directory('static', filename)
