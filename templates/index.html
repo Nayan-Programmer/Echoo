@@ -101,7 +101,11 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button class="header-btn">Settings</button>
+                {% if user_info %}
+                    <button class="header-btn" onclick="window.location.href='/logout'">Logout</button>
+                {% else %}
+                    <button class="header-btn" onclick="window.location.href='/google-login'">Sign in with Google</button>
+                {% endif %}
             </div>
         </div>
     </header>
@@ -112,9 +116,15 @@
                 <div class="welcome-logo">
                     <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="welcome-logo-img">
                 </div>
-                <h2 class="welcome-title">Welcome to EchooAI</h2>
-                <p class="welcome-description">Your AI assistant for everything. Click below to start chatting!</p>
-                <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
+                {% if user_info %}
+                    <h2 class="welcome-title">Welcome, {{ user_info.get('given_name', 'User') }}! 👋</h2>
+                    <p class="welcome-description">You're logged in. Click below to start chatting with EchooAI!</p>
+                    <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
+                {% else %}
+                    <h2 class="welcome-title">Welcome to EchooAI</h2>
+                    <p class="welcome-description">Please sign in with Google to start chatting.</p>
+                    <button class="start-chat-btn" onclick="window.location.href='/google-login'">Sign in with Google</button>
+                {% endif %}
             </div>
         </div>
 
@@ -147,60 +157,60 @@
 </div>
 
 <script>
-function startChat(){
-    document.getElementById('welcomeScreen').style.display='none';
-    document.getElementById('chatArea').style.display='flex';
-}
-
-async function sendMessage(){
-    const input = document.getElementById('messageInput');
-    const text = input.value.trim();
-    if(!text) return;
-
-    const container = document.getElementById('messagesContainer');
-
-    const userMessage = document.createElement('div');
-    userMessage.className='message user';
-    userMessage.innerHTML = `
-        <div class="message-content">
-            <div class="message-avatar user-avatar">U</div>
-            <div class="message-bubble user"><div class="message-text">${text}</div></div>
-        </div>`;
-    container.appendChild(userMessage);
-    input.value='';
-    container.scrollTop=container.scrollHeight;
-
-    try{
-        const response = await fetch("/chat", {
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({message:text})
-        });
-        const data = await response.json();
-        const aiText = data.reply;
-
-        const aiMessage = document.createElement('div');
-        aiMessage.className='message ai';
-        aiMessage.innerHTML = `
-            <div class="message-content">
-                <div class="message-avatar ai-avatar">AI</div>
-                <div class="message-bubble ai"><div class="message-text">${aiText}</div></div>
-            </div>`;
-        container.appendChild(aiMessage);
-        container.scrollTop=container.scrollHeight;
-    } catch(err){
-        console.error(err);
-        const errorMessage = document.createElement('div');
-        errorMessage.className='message ai';
-        errorMessage.innerHTML = `
-            <div class="message-content">
-                <div class="message-avatar ai-avatar">AI</div>
-                <div class="message-bubble ai"><div class="message-text">Error contacting AI server.</div></div>
-            </div>`;
-        container.appendChild(errorMessage);
-        container.scrollTop=container.scrollHeight;
+    function startChat(){
+        document.getElementById('welcomeScreen').style.display='none';
+        document.getElementById('chatArea').style.display='flex';
     }
-}
+
+    async function sendMessage(){
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        if(!text) return;
+
+        const container = document.getElementById('messagesContainer');
+
+        const userMessage = document.createElement('div');
+        userMessage.className='message user';
+        userMessage.innerHTML = `
+            <div class="message-content">
+                <div class="message-avatar user-avatar">U</div>
+                <div class="message-bubble user"><div class="message-text">${text}</div></div>
+            </div>`;
+        container.appendChild(userMessage);
+        input.value='';
+        container.scrollTop=container.scrollHeight;
+
+        try{
+            const response = await fetch("/chat", {
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({message:text})
+            });
+            const data = await response.json();
+            const aiText = data.reply;
+
+            const aiMessage = document.createElement('div');
+            aiMessage.className='message ai';
+            aiMessage.innerHTML = `
+                <div class="message-content">
+                    <div class="message-avatar ai-avatar">AI</div>
+                    <div class="message-bubble ai"><div class="message-text">${aiText}</div></div>
+                </div>`;
+            container.appendChild(aiMessage);
+            container.scrollTop=container.scrollHeight;
+        } catch(err){
+            console.error(err);
+            const errorMessage = document.createElement('div');
+            errorMessage.className='message ai';
+            errorMessage.innerHTML = `
+                <div class="message-content">
+                    <div class="message-avatar ai-avatar">AI</div>
+                    <div class="message-bubble ai"><div class="message-text">Error contacting AI server.</div></div>
+                </div>`;
+            container.appendChild(errorMessage);
+            container.scrollTop=container.scrollHeight;
+        }
+    }
 </script>
 </body>
 </html>
