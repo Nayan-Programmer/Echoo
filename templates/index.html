@@ -1,216 +1,305 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EchooAI - AI Assistant</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-    * {margin:0;padding:0;box-sizing:border-box;}
-    body {font-family:'Inter', system-ui, sans-serif;color:#fff;background:#000;overflow-x:hidden;}
-    :root {
-        --primary-500:hsl(172.4, 82.8%, 36.1%);
-        --emerald-500:hsl(160, 84.1%, 39.4%);
-        --glass-bg:rgba(255,255,255,0.1);
-        --glass-dark-bg:rgba(30,41,59,0.8);
-        --glass-dark-border:rgba(148,163,184,0.1);
-        --radius:1.3rem;
-    }
-    .background-gradient {position:fixed;inset:0;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);opacity:0.9;z-index:-2;}
-    .background-overlay {position:fixed;inset:0;background-image:url('https://images.unsplash.com/photo-1635070041078-e363dbe005cb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080');background-size:cover;background-position:center;opacity:0.05;z-index:-1;}
-    .app {min-height:100vh;display:flex;flex-direction:column;position:relative;}
-    .header {background:var(--glass-dark-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--glass-dark-border);z-index:100;}
-    .header-content {max-width:1536px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:4rem;}
-    .logo-section {display:flex;align-items:center;gap:.75rem;}
-    .logo-icon {
-        width:1.8rem;
-        height:1.8rem;
-        border-radius:var(--radius);
-        background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        box-shadow:0 10px 25px rgba(0,0,0,0.2);
-    }
-    .logo-img {width:1rem;height:1rem;border-radius:.25rem;}
-    .logo-text h1 {font-size:1.25rem;font-weight:700;color:white;margin:0;}
-    .header-actions {display:flex;align-items:center;gap:.75rem;}
-    .header-btn {padding:.5rem;border-radius:.5rem;background:var(--glass-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--glass-dark-border);color:white;cursor:pointer;transition:all .2s ease;}
-    .header-btn:hover {background:rgba(255,255,255,0.2);transform:translateY(-1px);}
-    .main-content {flex:1;display:flex;flex-direction:column;max-width:64rem;margin:0 auto;width:100%;padding:1.5rem;gap:1.5rem;}
-    .welcome-screen {flex:1;display:flex;align-items:center;justify-content:center;animation:fadeIn .5s ease-in-out;}
-    .welcome-content {text-align:center;max-width:32rem;margin:0 auto;}
-    .welcome-logo {width:5rem;height:5rem;margin:0 auto 2rem;background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 20px 50px rgba(0,0,0,0.3);}
-    .welcome-logo-img {width:2rem;height:2rem;border-radius:.5rem;}
-    .welcome-title {font-size:2.5rem;font-weight:700;color:white;margin-bottom:1rem;}
-    .welcome-description {font-size:1.25rem;color:#d1d5db;margin-bottom:2rem;line-height:1.75;}
-    .start-chat-btn {display:inline-flex;align-items:center;gap:.5rem;padding:1rem 2rem;background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);color:white;font-weight:600;border:none;border-radius:var(--radius);cursor:pointer;transition:all .3s ease;box-shadow:0 10px 25px rgba(0,0,0,0.2);}
-    .start-chat-btn:hover {box-shadow:0 20px 40px rgba(0,0,0,0.3);transform:scale(1.05);}
-    .chat-area {flex:1;display:flex;flex-direction:column;animation:fadeIn .5s ease-in-out;}
-    .messages-container {flex:1;background:var(--glass-dark-bg);backdrop-filter:blur(10px);border:1px solid var(--glass-dark-border);border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;min-height:400px;max-height:60vh;overflow-y:auto;}
-    .messages-container::-webkit-scrollbar {display:none;}
-    .message {display:flex;margin-bottom:1rem;animation:fadeIn .5s ease-in-out;}
-    .message.user {justify-content:flex-end;}
-    .message-content {max-width:70%;display:flex;align-items:flex-start;gap:.75rem;}
-    .message.user .message-content {flex-direction:row-reverse;}
-    .message-avatar {width:2rem;height:2rem;border-radius:.5rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-    .ai-avatar {background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);color:white;}
-    .user-avatar {background:linear-gradient(135deg,#8b5cf6 0%,#ec4899 100%);color:white;font-size:.75rem;font-weight:600;}
-    .message-bubble {border-radius:1rem;padding:.75rem 1rem;position:relative;}
-    .message-bubble.ai {background:rgba(248,250,252,0.9);backdrop-filter:blur(10px);border:1px solid rgba(226,232,240,0.3);color:#374151;}
-    .message-bubble.user {background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);color:white;}
-    .message-text {white-space:pre-wrap;line-height:1.5;}
-    .message-input-container {animation:slideUp .3s ease-out;}
-    .message-input-wrapper {background:var(--glass-dark-bg);backdrop-filter:blur(10px);border:1px solid var(--glass-dark-border);border-radius:1rem;padding:1rem;}
-    .input-area {display:flex;align-items:flex-end;gap:1rem;margin-bottom:.75rem;}
-    #messageInput {flex:1;background:rgba(255,255,255,0.1);border:none;border-radius:var(--radius);padding:.75rem 3rem .75rem 1rem;color:white;font-family:inherit;font-size:1rem;resize:none;min-height:2.75rem;max-height:8rem;outline:none;transition:all .2s ease;scrollbar-width:none;-ms-overflow-style:none;}
-    #messageInput::-webkit-scrollbar {display:none;}
-    #messageInput::placeholder {color:#9ca3af;}
-    #messageInput:focus {background:rgba(255,255,255,0.15);box-shadow:0 0 0 2px var(--primary-500);}
-    .send-btn {background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);border:none;border-radius:var(--radius);padding:.75rem;color:white;cursor:pointer;transition:all .2s ease;box-shadow:0 4px 15px rgba(0,0,0,0.2);flex-shrink:0;}
-    .send-btn:hover:not(:disabled) {box-shadow:0 6px 20px rgba(0,0,0,0.3);transform:scale(1.05);}
-    .send-btn:disabled {opacity:.5;cursor:not-allowed;transform:none;}
-    .footer {background:var(--glass-dark-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--glass-dark-border);margin-top:auto;}
-    .footer-content {max-width:64rem;margin:0 auto;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;font-size:.875rem;color:#9ca3af;}
-    .footer-left {display:flex;align-items:center;gap:1rem;}
-    .separator {width:.25rem;height:.25rem;background:#6b7280;border-radius:50%;}
-    .footer-link {color:#9ca3af;text-decoration:none;transition:color .2s ease;}
-    .footer-link:hover {color:var(--primary-500);}
-    .footer-right {display:flex;align-items:center;gap:.5rem;}
-    .status-indicator {width:.5rem;height:.5rem;background:var(--emerald-500);border-radius:50%;animation:pulse 2s infinite;}
-    .status-text {color:var(--emerald-500);}
-    @keyframes fadeIn {0%{opacity:0;transform:translateY(10px);}100%{opacity:1;transform:translateY(0);}}
-    @keyframes slideUp {0%{transform:translateY(100%);}100%{transform:translateY(0);}}
-    @keyframes pulse {0%,100%{opacity:1;}50%{opacity:0.5;}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ AssistantName }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fafc;
+        }
+        .container-wrapper {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #1a202c;
+            color: #e2e8f0;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #2d3748;
+            overflow-y: auto;
+        }
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 100%;
+        }
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 1.5rem;
+            gap: 1rem;
+            background-color: #e2e8f0;
+        }
+        .chat-message {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 1.5rem;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #4c51bf;
+            color: #fff;
+            align-self: flex-end;
+            border-bottom-right-radius: 0.5rem;
+        }
+        .assistant-message {
+            background-color: #cbd5e0;
+            color: #2d3748;
+            align-self: flex-start;
+            border-bottom-left-radius: 0.5rem;
+        }
+        .input-area {
+            display: flex;
+            padding: 1.5rem;
+            background-color: #cbd5e0;
+            border-top: 1px solid #a0aec0;
+        }
+        .input-area textarea {
+            flex-grow: 1;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            resize: none;
+            background-color: #fff;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .input-area textarea:focus {
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+            border-color: #4c51bf;
+        }
+        .input-area button {
+            margin-left: 1rem;
+            padding: 0 1.5rem;
+            background-color: #4c51bf;
+            color: #fff;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .input-area button:hover {
+            background-color: #434190;
+        }
+        .chat-list-item {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .chat-list-item:hover {
+            background-color: #2d3748;
+        }
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #4a5568;
+        }
+        .sidebar-header button {
+            background-color: #4c51bf;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .sidebar-header button:hover {
+            background-color: #434190;
+        }
+    </style>
 </head>
 <body>
-<div class="app">
-    <div class="background-gradient"></div>
-    <div class="background-overlay"></div>
-
-    <header class="header">
-        <div class="header-content">
-            <div class="logo-section">
-                <div class="logo-icon">
-                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-img">
-                </div>
-                <div class="logo-text">
-                    <h1>EchooAI</h1>
-                    <p>Premium Chatbot</p>
-                </div>
+    <div class="container-wrapper">
+        <!-- Sidebar for chat history -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <span>Chats</span>
+                <button id="new-chat-button">New Chat</button>
             </div>
-            <div class="header-actions">
-                {% if user_info %}
-                    <button class="header-btn" onclick="window.location.href='/logout'">Logout</button>
-                {% else %}
-                    <button class="header-btn" onclick="window.location.href='/google-login'">Sign in with Google</button>
-                {% endif %}
+            <div id="chat-list">
+                <!-- Previous chats will be dynamically added here -->
             </div>
         </div>
-    </header>
 
-    <main class="main-content">
-        <div class="welcome-screen" id="welcomeScreen">
-            <div class="welcome-content">
-                <div class="welcome-logo">
-                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="welcome-logo-img">
+        <!-- Main chat content -->
+        <div class="main-content">
+            <div class="flex-shrink-0 bg-white p-4 flex items-center justify-between shadow-md">
+                <div class="flex items-center space-x-4">
+                    <img src="/logo/logo.png" alt="EchooAI Logo" class="h-8 w-auto">
+                    <h1 class="text-xl font-bold text-gray-800">{{ AssistantName }}</h1>
                 </div>
                 {% if user_info %}
-                    <h2 class="welcome-title">Welcome, {{ user_info.get('given_name', 'User') }}! 👋</h2>
-                    <p class="welcome-description">You're logged in. Click below to start chatting with EchooAI!</p>
-                    <button class="start-chat-btn" onclick="startChat()">Start Chat</button>
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-600">
+                        Hello, {{ user_info.given_name }}!
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="px-3 py-1 bg-red-500 text-white text-sm rounded-full hover:bg-red-600 transition duration-200">Logout</a>
+                </div>
                 {% else %}
-                    <h2 class="welcome-title">Welcome to EchooAI</h2>
-                    <p class="welcome-description">Please sign in with Google to start chatting.</p>
-                    <button class="start-chat-btn" onclick="window.location.href='/google-login'">Sign in with Google</button>
+                <a href="{{ url_for('google_login') }}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">Login with Google</a>
                 {% endif %}
             </div>
-        </div>
 
-        <div class="chat-area" id="chatArea" style="display:none;">
-            <div class="messages-container" id="messagesContainer"></div>
-            <div class="message-input-container">
-                <div class="message-input-wrapper">
-                    <div class="input-area">
-                        <textarea id="messageInput" placeholder="Type your message..."></textarea>
-                        <button class="send-btn" onclick="sendMessage()">Send</button>
-                    </div>
-                </div>
+            <div id="chat-messages" class="chat-container">
+                <!-- Initial greeting or previous chat messages will be displayed here -->
+                {% if current_chat %}
+                    {% for message in current_chat %}
+                        {% if message.role == 'user' %}
+                            <div class="chat-message user-message">{{ message.content }}</div>
+                        {% else %}
+                            <div class="chat-message assistant-message">{{ message.content }}</div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="chat-message assistant-message">Hello! I am {{ AssistantName }}. How can I help you today?</div>
+                {% endif %}
+            </div>
+
+            <div class="input-area">
+                <textarea id="user-input" placeholder="Type your message..." rows="1"></textarea>
+                <button id="send-button">Send</button>
             </div>
         </div>
-    </main>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sendButton = document.getElementById('send-button');
+            const userInput = document.getElementById('user-input');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatList = document.getElementById('chat-list');
+            const newChatButton = document.getElementById('new-chat-button');
+            
+            // Initial chat history loaded from Flask
+            const initialChat = JSON.parse('{{ current_chat | tojson }}');
+            const allChats = JSON.parse('{{ all_chats | tojson }}');
 
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-left">
-                <span>&copy; 2025 EchooAI</span>
-                <div class="separator"></div>
-                <a href="#" class="footer-link">Privacy</a>
-            </div>
-            <div class="footer-right">
-                <div class="status-indicator"></div>
-                <span class="status-text">Online</span>
-            </div>
-        </div>
-    </footer>
-</div>
+            // Function to dynamically create a chat message element
+            function createMessageElement(role, content) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('chat-message');
+                if (role === 'user') {
+                    messageDiv.classList.add('user-message');
+                } else {
+                    messageDiv.classList.add('assistant-message');
+                }
+                messageDiv.innerText = content;
+                return messageDiv;
+            }
 
-<script>
-    function startChat(){
-        document.getElementById('welcomeScreen').style.display='none';
-        document.getElementById('chatArea').style.display='flex';
-    }
+            // Function to display chat history in the main window
+            function displayChatHistory(history) {
+                chatMessages.innerHTML = ''; // Clear existing messages
+                history.forEach(message => {
+                    chatMessages.appendChild(createMessageElement(message.role, message.content));
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+            }
 
-    async function sendMessage(){
-        const input = document.getElementById('messageInput');
-        const text = input.value.trim();
-        if(!text) return;
+            // Function to display chat sessions in the sidebar
+            function renderSidebarChats(chats) {
+                chatList.innerHTML = '';
+                chats.forEach(chat => {
+                    const chatItem = document.createElement('div');
+                    chatItem.classList.add('chat-list-item');
+                    chatItem.innerText = chat.title;
+                    chatItem.dataset.chatId = chat.id;
+                    chatItem.addEventListener('click', () => loadChat(chat.id));
+                    chatList.appendChild(chatItem);
+                });
+            }
 
-        const container = document.getElementById('messagesContainer');
+            // Function to handle sending a new message
+            async function sendMessage() {
+                const message = userInput.value.trim();
+                if (message === '') return;
 
-        const userMessage = document.createElement('div');
-        userMessage.className='message user';
-        userMessage.innerHTML = `
-            <div class="message-content">
-                <div class="message-avatar user-avatar">U</div>
-                <div class="message-bubble user"><div class="message-text">${text}</div></div>
-            </div>`;
-        container.appendChild(userMessage);
-        input.value='';
-        container.scrollTop=container.scrollHeight;
+                // Display user's message
+                chatMessages.appendChild(createMessageElement('user', message));
+                userInput.value = '';
+                chatMessages.scrollTop = chatMessages.scrollHeight;
 
-        try{
-            const response = await fetch("/chat", {
-                method:"POST",
-                headers:{"Content-Type":"application/json"},
-                body:JSON.stringify({message:text})
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ message: message })
+                    });
+
+                    if (response.status === 401) {
+                        window.location.href = "{{ url_for('google_login') }}";
+                        return;
+                    }
+
+                    const data = await response.json();
+                    
+                    // Display assistant's reply
+                    chatMessages.appendChild(createMessageElement('assistant', data.reply));
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    chatMessages.appendChild(createMessageElement('assistant', 'Sorry, I am having trouble connecting.'));
+                }
+            }
+
+            // Function to start a new chat
+            async function startNewChat() {
+                // First, save the current chat
+                if (chatMessages.children.length > 1) { // Check if there's an actual conversation to save
+                    await fetch('/save-chat', { method: 'POST' });
+                }
+                // Then, start a new chat
+                const response = await fetch('/new-chat', { method: 'POST' });
+                if (response.ok) {
+                    window.location.reload(); // Reload the page to get a fresh start
+                }
+            }
+
+            // Function to load a specific chat from the sidebar
+            async function loadChat(chatId) {
+                const response = await fetch(`/load-chat/${chatId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === "Chat loaded.") {
+                        displayChatHistory(data.history);
+                        // Also update the server-side session to reflect this change
+                        await fetch(`/load-chat/${chatId}`);
+                    }
+                } else {
+                    alert('Error loading chat.');
+                }
+            }
+
+            // Event listeners
+            sendButton.addEventListener('click', sendMessage);
+            newChatButton.addEventListener('click', startNewChat);
+
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
             });
-            const data = await response.json();
-            const aiText = data.reply;
 
-            const aiMessage = document.createElement('div');
-            aiMessage.className='message ai';
-            aiMessage.innerHTML = `
-                <div class="message-content">
-                    <div class="message-avatar ai-avatar">AI</div>
-                    <div class="message-bubble ai"><div class="message-text">${aiText}</div></div>
-                </div>`;
-            container.appendChild(aiMessage);
-            container.scrollTop=container.scrollHeight;
-        } catch(err){
-            console.error(err);
-            const errorMessage = document.createElement('div');
-            errorMessage.className='message ai';
-            errorMessage.innerHTML = `
-                <div class="message-content">
-                    <div class="message-avatar ai-avatar">AI</div>
-                    <div class="message-bubble ai"><div class="message-text">Error contacting AI server.</div></div>
-                </div>`;
-            container.appendChild(errorMessage);
-            container.scrollTop=container.scrollHeight;
-        }
-    }
-</script>
+            // Initial rendering of the sidebar
+            renderSidebarChats(allChats);
+        });
+    </script>
 </body>
 </html>
