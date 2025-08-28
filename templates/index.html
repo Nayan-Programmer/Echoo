@@ -37,7 +37,15 @@
     .header-actions {display:flex;align-items:center;gap:.75rem;}
     .header-btn {padding:.5rem;border-radius:.5rem;background:var(--glass-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--glass-dark-border);color:white;cursor:pointer;transition:all .2s ease;}
     .header-btn:hover {background:rgba(255,255,255,0.2);transform:translateY(-1px);}
-    .main-content {flex:1;display:flex;flex-direction:column;max-width:64rem;margin:0 auto;width:100%;padding:1.5rem;gap:1.5rem;}
+    .main-content {
+        flex: 1;
+        display: flex;
+        max-width: 80rem; /* Increased max-width for sidebar */
+        margin: 0 auto;
+        width: 100%;
+        padding: 1.5rem;
+        gap: 1.5rem;
+    }
     .welcome-screen {flex:1;display:flex;align-items:center;justify-content:center;animation:fadeIn .5s ease-in-out;}
     .welcome-content {text-align:center;max-width:32rem;margin:0 auto;}
     .welcome-logo {width:5rem;height:5rem;margin:0 auto 2rem;background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 20px 50px rgba(0,0,0,0.3);}
@@ -46,7 +54,44 @@
     .welcome-description {font-size:1.25rem;color:#d1d5db;margin-bottom:2rem;line-height:1.75;}
     .start-chat-btn {display:inline-flex;align-items:center;gap:.5rem;padding:1rem 2rem;background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);color:white;font-weight:600;border:none;border-radius:var(--radius);cursor:pointer;transition:all .3s ease;box-shadow:0 10px 25px rgba(0,0,0,0.2);}
     .start-chat-btn:hover {box-shadow:0 20px 40px rgba(0,0,0,0.3);transform:scale(1.05);}
-    .chat-area {flex:1;display:flex;flex-direction:column;animation:fadeIn .5s ease-in-out;}
+    .sidebar {
+        width: 20rem; /* Sidebar width */
+        background: var(--glass-dark-bg);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-dark-border);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        display: none; /* Initially hidden, shown with chat area */
+        flex-direction: column;
+    }
+    .sidebar-heading {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: white;
+    }
+    .sidebar-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .sidebar-item {
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        background: rgba(255, 255, 255, 0.05);
+        color: #d1d5db;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    .sidebar-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    .chat-area {
+        flex: 1;
+        display: none; /* Initially hidden */
+        flex-direction: column;
+        animation: fadeIn .5s ease-in-out;
+    }
     .messages-container {flex:1;background:var(--glass-dark-bg);backdrop-filter:blur(10px);border:1px solid var(--glass-dark-border);border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;min-height:400px;max-height:60vh;overflow-y:auto;}
     .messages-container::-webkit-scrollbar {display:none;}
     .message {display:flex;margin-bottom:1rem;animation:fadeIn .5s ease-in-out;}
@@ -128,6 +173,15 @@
             </div>
         </div>
 
+        <div class="sidebar" id="sidebar">
+            <h3 class="sidebar-heading">Previous Chats</h3>
+            <div class="sidebar-list">
+                <div class="sidebar-item">Chat with AI</div>
+                <div class="sidebar-item">About Planets</div>
+                <div class="sidebar-item">Code Generation</div>
+            </div>
+        </div>
+
         <div class="chat-area" id="chatArea" style="display:none;">
             <div class="messages-container" id="messagesContainer">
                 {% for message in chat_history %}
@@ -170,9 +224,10 @@
 </div>
 
 <script>
-    // Function to show the chat area and hide the welcome screen
+    // Function to show the chat area and sidebar, and hide the welcome screen
     function startChat(){
         document.getElementById('welcomeScreen').style.display='none';
+        document.getElementById('sidebar').style.display='flex';
         document.getElementById('chatArea').style.display='flex';
     }
 
