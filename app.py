@@ -70,7 +70,7 @@ def init_db():
 def setup_database():
     init_db()
 
-# --- Math Solver ---
+# --- Utility Functions ---
 def solve_math(query):
     try:
         expr = sympify(query)
@@ -84,7 +84,6 @@ def solve_math(query):
     except Exception as e:
         return f"Math Error: {e}"
 
-# --- Google Search ---
 def GoogleSearch(query):
     try:
         url = "https://www.googleapis.com/customsearch/v1"
@@ -97,28 +96,22 @@ def GoogleSearch(query):
     except Exception as e:
         return f"(Search Error: {e})"
 
-# --- AI Engine ---
 def RealtimeEngine(prompt, chat_history=[]):
-    # Chat history ko Groq API ko pass karne ke liye prepare karte hain
     groq_history = [{"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}."},]
     for msg in chat_history:
         groq_history.append({"role": msg['role'], "content": msg['content']})
     groq_history.append({"role": "user", "content": prompt})
 
-    # Math queries
     if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
         return solve_math(prompt)
 
-    # Google search
     if prompt.lower().startswith("search:"):
         query = prompt.replace("search:", "").strip()
         return GoogleSearch(query)
 
-    # Developer info
     if "who is your developer" in prompt.lower() or "who created you" in prompt.lower():
         return f"My developer is {DeveloperName}. {FullInformation}"
 
-    # Groq AI
     try:
         client = Groq(api_key=GroqAPIKey)
         response = client.chat.completions.create(
@@ -139,37 +132,29 @@ def home():
     if user_info:
         db = get_db()
         cursor = db.cursor()
-        # User ki email se previous chats fetch karte hain
         cursor.execute("SELECT id, chat_title FROM chats WHERE user_email = ? ORDER BY created_at DESC", (user_info['email'],))
         previous_chats = cursor.fetchall()
-
     return render_template("index.html", assistant_name=AssistantName, user_info=user_info, previous_chats=previous_chats)
 
-# Route to initiate Google login
 @app.route('/google-login')
 def google_login():
     redirect_uri = url_for('google_auth', _external=True)
-    session['nonce'] = os.urandom(16).hex() # Generate a nonce for security
-    return oauth.google.authorize_redirect(redirect_uri, nonce=session['nonce'])
+    return oauth.google.authorize_redirect(redirect_uri)
 
-# Route to handle Google's callback
 @app.route('/google/auth/')
 def google_auth():
     try:
         token = oauth.google.authorize_access_token()
-        user = oauth.google.parse_id_token(token, nonce=session.get('nonce'))
+        user = oauth.google.parse_id_token(token)
         
         session['user_info'] = user
-        session.pop('nonce', None)
 
-        # Check if user has an existing chat history
         db = get_db()
         cursor = db.cursor()
         cursor.execute("SELECT id FROM chats WHERE user_email = ?", (user['email'],))
         existing_chat = cursor.fetchone()
 
         if not existing_chat:
-            # Create a default chat for new users
             default_history = json.dumps([{"role": "assistant", "content": f"Hi {user.get('given_name', 'User')}! How can I help you today?"}])
             cursor.execute("INSERT INTO chats (user_email, chat_title, history) VALUES (?, ?, ?)", 
                            (user['email'], 'New Chat', default_history))
@@ -180,13 +165,11 @@ def google_auth():
         print(f"Authentication Error: {e}")
         return redirect(url_for('home'))
 
-# Logout route
 @app.route('/logout')
 def logout():
     session.pop('user_info', None)
     return redirect(url_for('home'))
 
-# Route to get previous chat history
 @app.route("/chat-history/<int:chat_id>", methods=["GET"])
 def get_chat_history(chat_id):
     user_info = session.get('user_info')
@@ -204,7 +187,6 @@ def get_chat_history(chat_id):
     
     return jsonify({"error": "Chat not found or access denied."}), 404
 
-# Route to create a new chat
 @app.route("/new-chat", methods=["POST"])
 def new_chat():
     user_info = session.get('user_info')
@@ -213,7 +195,6 @@ def new_chat():
     
     db = get_db()
     cursor = db.cursor()
-    # User ke naam se default first message
     initial_message = f"Hi {user_info.get('given_name', 'User')}! How can I help you today?"
     default_history = json.dumps([{"role": "assistant", "content": initial_message}])
     
@@ -224,7 +205,6 @@ def new_chat():
     
     return jsonify({"chat_id": new_chat_id, "history": json.loads(default_history)})
 
-# Main chat route
 @app.route("/chat", methods=["POST"])
 def chat():
     user_info = session.get('user_info')
@@ -240,31 +220,20 @@ def chat():
     db = get_db()
     cursor = db.cursor()
     
-    # Existing chat history fetch karte hain
     cursor.execute("SELECT history FROM chats WHERE id = ? AND user_email = ?", (chat_id, user_info['email']))
     chat = cursor.fetchone()
     if not chat:
         return jsonify({"reply": "Chat not found."}), 404
         
     chat_history = json.loads(chat['history'])
-    
-    # RealtimeEngine function ko chat history ke saath call karte hain
     reply = RealtimeEngine(user_prompt, chat_history)
 
-    # New messages history me add karte hain
     chat_history.append({"role": "user", "content": user_prompt})
     chat_history.append({"role": "assistant", "content": reply})
     
-    # History ko database me update karte hain
     cursor.execute("UPDATE chats SET history = ? WHERE id = ?", (json.dumps(chat_history), chat_id))
     db.commit()
     
-    # Agar chat ka title default hai to use first prompt se update karte hain
-    if chat_history[0].get('chat_title') == 'New Chat' and len(chat_history) >= 2:
-        chat_title = user_prompt[:25] + "..." if len(user_prompt) > 25 else user_prompt
-        cursor.execute("UPDATE chats SET chat_title = ? WHERE id = ?", (chat_title, chat_id))
-        db.commit()
-
     return jsonify({"reply": reply})
 
 # Serve static logo
@@ -274,5 +243,4 @@ def logo(filename):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    # init_db() # Yeh line app ke bahar bhi run kar sakte hain ya @before_request decorator use kar sakte hain
     app.run(host="0.0.0.0", port=port, debug=True)
