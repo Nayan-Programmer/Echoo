@@ -84,7 +84,7 @@ def RealtimeEngine(prompt, user_info=None):
     try:
         client = Groq(api_key=GroqAPIKey)
         response = client.chat.completions.create(
-            model="llama3-70b-8192",
+            model="whisper-large-v3-turbo",
             messages=[
                 {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}. The current user's name is {user_name}."},
                 {"role": "user", "content": prompt}
@@ -168,4 +168,5 @@ def logo(filename):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
 
