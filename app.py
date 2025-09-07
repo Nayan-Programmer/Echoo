@@ -25,8 +25,6 @@ app.secret_key = os.urandom(24)
 
 # Initialize Authlib OAuth
 oauth = OAuth(app)
-
-# Register the Google OAuth client
 oauth.register(
     name='google',
     client_id=GoogleClientID,
@@ -64,7 +62,6 @@ def GoogleSearch(query):
 
 # --- AI Engine ---
 def RealtimeEngine(prompt, user_info=None):
-    # Determine the user's name for the system prompt
     user_name = user_info.get('name', 'User') if user_info else 'User'
 
     # Math queries
@@ -100,41 +97,44 @@ def RealtimeEngine(prompt, user_info=None):
 @app.route("/", methods=["GET"])
 def home():
     user_info = session.get('user_info')
-    # Agar user logged in hai, toh chat history load karein
-    chat_history = session.get('chat_history', [])
-    return render_template("index.html", assistant_name=AssistantName, user_info=user_info, chat_history=chat_history)
+    chat_sessions = session.get('chat_sessions', [])
+    active_chat = session.get('active_chat')
+    return render_template("index.html",
+                           assistant_name=AssistantName,
+                           user_info=user_info,
+                           chat_sessions=chat_sessions,
+                           active_chat=active_chat)
 
-# Route to initiate Google login
+# Google login
 @app.route('/google-login')
 def google_login():
     redirect_uri = url_for('google_auth', _external=True)
     session['nonce'] = os.urandom(32).hex()
     return oauth.google.authorize_redirect(redirect_uri, nonce=session['nonce'])
 
-# Route to handle Google's callback
 @app.route('/google/auth/')
 def google_auth():
     try:
         token = oauth.google.authorize_access_token()
         user = oauth.google.parse_id_token(token, nonce=session.get('nonce'))
-        
-        # User info aur chat history ko session mein store karein
-        session['user_info'] = user
-        session['chat_history'] = []  # Nayi chat session shuru karein
-        session.pop('nonce', None)
 
+        session['user_info'] = user
+        session['chat_sessions'] = []  # reset chat sessions
+        session['active_chat'] = None
+        session.pop('nonce', None)
         return redirect(url_for('home'))
     except Exception as e:
         print(f"Authentication Error: {e}")
         return redirect(url_for('home'))
 
-# Logout route
 @app.route('/logout')
 def logout():
     session.pop('user_info', None)
-    session.pop('chat_history', None) # Chat history ko bhi delete karein
+    session.pop('chat_sessions', None)
+    session.pop('active_chat', None)
     return redirect(url_for('home'))
 
+# --- Chat Endpoint ---
 @app.route("/chat", methods=["POST"])
 def chat():
     user_info = session.get('user_info')
@@ -145,22 +145,51 @@ def chat():
     user_prompt = data.get("message", "")
     if not user_prompt:
         return jsonify({"reply": "Please enter a message."}), 400
-    
-    # User message ko history mein add karein
-    chat_history = session.get('chat_history', [])
-    chat_history.append({"sender": "user", "message": user_prompt})
-    session['chat_history'] = chat_history # Session update karein
 
-    # Pass the user_info to the RealtimeEngine
-    reply = RealtimeEngine(user_prompt, user_info)
+    # Ensure chat_sessions exists
+    if 'chat_sessions' not in session:
+        session['chat_sessions'] = []
 
-    # AI reply ko history mein add karein
-    chat_history.append({"sender": "ai", "message": reply})
-    session['chat_history'] = chat_history # Session update karein
-    
-    return jsonify({"reply": reply})
+    # Create new chat session if none active
+    if not session.get('active_chat'):
+        chat_id = str(len(session['chat_sessions']) + 1)
+        session['chat_sessions'].append({"id": chat_id, "title": f"Chat {chat_id}", "messages": []})
+        session['active_chat'] = chat_id
 
-# Serve static logo if needed
+    # Find active chat
+    for chat in session['chat_sessions']:
+        if chat['id'] == session['active_chat']:
+            chat['messages'].append({"sender": "user", "message": user_prompt})
+            reply = RealtimeEngine(user_prompt, user_info)
+            chat['messages'].append({"sender": "ai", "message": reply})
+            session.modified = True
+            return jsonify({"reply": reply})
+
+    return jsonify({"reply": "Error: Active chat not found."}), 500
+
+# --- Image Generation Endpoint ---
+@app.route("/image-gen", methods=["POST"])
+def image_gen():
+    user_info = session.get('user_info')
+    if not user_info:
+        return jsonify({"error": "Please log in with Google to use image generation."}), 401
+
+    data = request.get_json()
+    prompt = data.get("prompt", "").strip()
+    if not prompt:
+        return jsonify({"error": "Prompt is required."}), 400
+
+    try:
+        # Mock image (replace with real API call)
+        svg = f"<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'>" \
+              f"<rect width='100%' height='100%' fill='#f4f4f4'/>" \
+              f"<text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='20'>{prompt}</text></svg>"
+        data_url = "data:image/svg+xml;base64," + svg.encode("utf-8").hex()
+        return jsonify({"images": [data_url]})
+    except Exception as e:
+        return jsonify({"error": f"Image generation failed: {e}"}), 500
+
+# Static logo
 @app.route('/logo/<path:filename>')
 def logo(filename):
     return send_from_directory('static', filename)
@@ -168,7 +197,3 @@ def logo(filename):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
-
-
-
