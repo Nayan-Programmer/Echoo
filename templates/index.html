@@ -6,56 +6,70 @@
 <title>EchooAI - AI Assistant</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    /* === Same tumhara original CSS === */
-    * {margin:0;padding:0;box-sizing:border-box;}
-    body {font-family:'Inter', system-ui, sans-serif;color:#fff;background:#000;overflow-x:hidden;}
-    :root {
-        --primary-500:hsl(172.4, 82.8%, 36.1%);
-        --emerald-500:hsl(160, 84.1%, 39.4%);
-        --glass-bg:rgba(255,255,255,0.1);
-        --glass-dark-bg:rgba(30,41,59,0.8);
-        --glass-dark-border:rgba(148,163,184,0.1);
-        --radius:1.3rem;
-    }
-    .background-gradient {position:fixed;inset:0;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);opacity:0.9;z-index:-2;}
-    .background-overlay {position:fixed;inset:0;background-image:url('https://images.unsplash.com/photo-1635070041078-e363dbe005cb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080');background-size:cover;background-position:center;opacity:0.05;z-index:-1;}
-    .app {min-height:100vh;display:flex;flex-direction:column;position:relative;}
-    .header {background:var(--glass-dark-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--glass-dark-border);z-index:100;}
-    .header-content {max-width:1536px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:4rem;}
-    .logo-section {display:flex;align-items:center;gap:.75rem;}
-    .logo-icon {width:1.8rem;height:1.8rem;border-radius:var(--radius);background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 25px rgba(0,0,0,0.2);}
-    .logo-img {width:1rem;height:1rem;border-radius:.25rem;}
-    .logo-text h1 {font-size:1.25rem;font-weight:700;color:white;margin:0;}
-    .header-btn {padding:.5rem;border-radius:.5rem;background:var(--glass-bg);border:1px solid var(--glass-dark-border);color:white;cursor:pointer;transition:.2s;}
-    .header-btn:hover {background:rgba(255,255,255,0.2);transform:translateY(-1px);}
-    .main-content {flex:1;display:flex;max-width:80rem;margin:0 auto;width:100%;padding:1.5rem;gap:1.5rem;}
-    .welcome-screen {flex:1;display:flex;align-items:center;justify-content:center;}
-    .welcome-content {text-align:center;max-width:32rem;margin:0 auto;}
-    .welcome-logo {width:5rem;height:5rem;margin:0 auto 2rem;background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 20px 50px rgba(0,0,0,0.3);}
-    .welcome-logo-img {width:2rem;height:2rem;border-radius:.5rem;}
-    .welcome-title {font-size:2.5rem;font-weight:700;color:white;margin-bottom:1rem;}
-    .welcome-description {font-size:1.25rem;color:#d1d5db;margin-bottom:2rem;}
-    .start-chat-btn {padding:1rem 2rem;background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);color:white;font-weight:600;border:none;border-radius:var(--radius);cursor:pointer;transition:.3s;}
-    .start-chat-btn:hover {transform:scale(1.05);}
-    .sidebar {width:20rem;background:var(--glass-dark-bg);border:1px solid var(--glass-dark-border);border-radius:1rem;padding:1.5rem;display:none;flex-direction:column;}
-    .sidebar-heading {font-size:1.25rem;font-weight:600;margin-bottom:1rem;}
-    .sidebar-item {padding:.75rem 1rem;border-radius:.75rem;background:rgba(255,255,255,0.05);color:#d1d5db;cursor:pointer;margin-bottom:.5rem;}
-    .sidebar-item:hover {background:rgba(255,255,255,0.1);}
-    .chat-area {flex:1;display:none;flex-direction:column;}
-    .messages-container {flex:1;background:var(--glass-dark-bg);border:1px solid var(--glass-dark-border);border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;overflow-y:auto;}
-    .message {display:flex;margin-bottom:1rem;}
-    .message.user {justify-content:flex-end;}
-    .message-content {max-width:70%;display:flex;align-items:flex-start;gap:.75rem;}
-    .message.user .message-content {flex-direction:row-reverse;}
-    .ai-avatar {background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);color:white;}
-    .user-avatar {background:linear-gradient(135deg,#8b5cf6 0%,#ec4899 100%);color:white;font-size:.75rem;font-weight:600;}
-    .message-bubble {border-radius:1rem;padding:.75rem 1rem;}
-    .message-bubble.ai {background:rgba(248,250,252,0.9);color:#374151;}
-    .message-bubble.user {background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);color:white;}
-    .message-text {white-space:pre-wrap;}
-    .message-input-wrapper {background:var(--glass-dark-bg);border:1px solid var(--glass-dark-border);border-radius:1rem;padding:1rem;margin-top:.5rem;}
-    #messageInput, #imagePrompt {flex:1;background:rgba(255,255,255,0.1);border:none;border-radius:var(--radius);padding:.75rem;color:white;}
-    .send-btn {background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);border:none;border-radius:var(--radius);padding:.75rem 1rem;color:white;cursor:pointer;}
+* {margin:0;padding:0;box-sizing:border-box;}
+body {font-family:'Inter', system-ui, sans-serif;color:#fff;background:#000;overflow-x:hidden;}
+:root {
+    --primary-500:hsl(172.4, 82.8%, 36.1%);
+    --emerald-500:hsl(160, 84.1%, 39.4%);
+    --glass-bg:rgba(255,255,255,0.08);
+    --glass-dark-bg:rgba(30,41,59,0.9);
+    --glass-dark-border:rgba(148,163,184,0.15);
+    --radius:1.3rem;
+}
+
+/* Background */
+.background-gradient {position:fixed;inset:0;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);opacity:0.9;z-index:-2;transition: all 0.3s;}
+.background-overlay {position:fixed;inset:0;background-image:url('https://images.unsplash.com/photo-1635070041078-e363dbe005cb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080');background-size:cover;background-position:center;opacity:0.05;z-index:-1;}
+
+/* App layout */
+.app {min-height:100vh;display:flex;flex-direction:column;position:relative;}
+.header {background:var(--glass-dark-bg);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);border-bottom:1px solid var(--glass-dark-border);z-index:100;transition: all 0.3s;}
+.header-content {max-width:1536px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:4rem;}
+.logo-section {display:flex;align-items:center;gap:.75rem;}
+.logo-icon {width:2rem;height:2rem;border-radius:var(--radius);background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(0,0,0,0.3);}
+.logo-img {width:1rem;height:1rem;border-radius:.25rem;}
+.logo-text h1 {font-size:1.5rem;font-weight:700;color:white;margin:0;letter-spacing:0.5px;}
+.header-btn {padding:.6rem 1rem;border-radius:.5rem;background:var(--glass-bg);border:1px solid var(--glass-dark-border);color:white;cursor:pointer;transition:.25s;backdrop-filter:blur(5px);}
+.header-btn:hover {background:rgba(255,255,255,0.15);transform:translateY(-2px);}
+
+/* Main content */
+.main-content {flex:1;display:flex;max-width:80rem;margin:0 auto;width:100%;padding:1.5rem;gap:1.5rem;transition: all 0.3s;}
+.welcome-screen {flex:1;display:flex;align-items:center;justify-content:center;transition: all 0.3s;}
+.welcome-content {text-align:center;max-width:32rem;margin:0 auto;}
+.welcome-logo {width:5rem;height:5rem;margin:0 auto 2rem;background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 25px 60px rgba(0,0,0,0.4);}
+.welcome-logo-img {width:2rem;height:2rem;border-radius:.5rem;}
+.welcome-title {font-size:2.5rem;font-weight:700;color:white;margin-bottom:1rem;letter-spacing:0.5px;}
+.welcome-description {font-size:1.2rem;color:#d1d5db;margin-bottom:2rem;}
+.start-chat-btn {padding:1rem 2rem;background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);color:white;font-weight:600;border:none;border-radius:var(--radius);cursor:pointer;transition:.3s;box-shadow:0 8px 25px rgba(0,0,0,0.2);}
+.start-chat-btn:hover {transform:scale(1.05);box-shadow:0 12px 35px rgba(0,0,0,0.3);}
+
+/* Sidebar */
+.sidebar {width:20rem;background:var(--glass-dark-bg);border:1px solid var(--glass-dark-border);border-radius:1rem;padding:1.5rem;display:none;flex-direction:column;transition: all 0.3s;}
+.sidebar-heading {font-size:1.25rem;font-weight:600;margin-bottom:1rem;letter-spacing:0.3px;}
+.sidebar-item {padding:.75rem 1rem;border-radius:.75rem;background:rgba(255,255,255,0.05);color:#d1d5db;cursor:pointer;margin-bottom:.5rem;transition:.2s;}
+.sidebar-item:hover, .sidebar-item.active {background:rgba(255,255,255,0.12);color:white;transform:translateX(2px);}
+
+/* Chat area */
+.chat-area {flex:1;display:none;flex-direction:column;transition: all 0.3s;}
+.messages-container {flex:1;background:var(--glass-dark-bg);border:1px solid var(--glass-dark-border);border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem;overflow-y:auto;scroll-behavior:smooth;}
+.message {display:flex;margin-bottom:1rem;transition: all 0.2s;}
+.message.user {justify-content:flex-end;}
+.message-content {max-width:70%;display:flex;align-items:flex-start;gap:.75rem;}
+.message.user .message-content {flex-direction:row-reverse;}
+.ai-avatar {background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);color:white;width:2rem;height:2rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;}
+.user-avatar {background:linear-gradient(135deg,#8b5cf6 0%,#ec4899 100%);color:white;width:2rem;height:2rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;}
+.message-bubble {border-radius:1rem;padding:.75rem 1rem;word-break:break-word;box-shadow:0 2px 12px rgba(0,0,0,0.2);}
+.message-bubble.ai {background:rgba(248,250,252,0.95);color:#374151;}
+.message-bubble.user {background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);color:white;}
+.message-text {white-space:pre-wrap;line-height:1.4;}
+
+/* Input wrapper */
+.message-input-wrapper {background:var(--glass-dark-bg);border:1px solid var(--glass-dark-border);border-radius:1rem;padding:.8rem;margin-top:.5rem;display:flex;gap:.5rem;}
+#messageInput, #imagePrompt {flex:1;background:rgba(255,255,255,0.1);border:none;border-radius:var(--radius);padding:.75rem;color:white;resize:none;outline:none;transition: all 0.2s;}
+#messageInput:focus, #imagePrompt:focus {background:rgba(255,255,255,0.15);}
+.send-btn {background:linear-gradient(135deg,var(--primary-500) 0%,var(--emerald-500) 100%);border:none;border-radius:var(--radius);padding:.75rem 1rem;color:white;cursor:pointer;transition: all 0.3s;box-shadow:0 4px 15px rgba(0,0,0,0.2);}
+.send-btn:hover {transform:scale(1.05);box-shadow:0 6px 20px rgba(0,0,0,0.3);}
+img {max-width:100%;border-radius:8px;}
 </style>
 </head>
 <body>
@@ -69,9 +83,7 @@
                 <div class="logo-icon">
                     <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-img">
                 </div>
-                <div class="logo-text">
-                    <h1>EchooAI</h1>
-                </div>
+                <div class="logo-text"><h1>EchooAI</h1></div>
             </div>
             <div class="header-actions">
                 {% if user_info %}
@@ -106,7 +118,7 @@
             <h3 class="sidebar-heading">Previous Chats</h3>
             <div class="sidebar-list" id="chatList">
                 {% for chat in chat_sessions %}
-                <div class="sidebar-item" onclick="loadChat('{{ chat.id }}')">{{ chat.title }}</div>
+                    <div class="sidebar-item" onclick="loadChat('{{ chat.id }}')" id="chat-{{ chat.id }}">{{ chat.title }}</div>
                 {% endfor %}
             </div>
         </div>
@@ -115,27 +127,26 @@
         <div class="chat-area" id="chatArea">
             <div class="messages-container" id="messagesContainer"></div>
             <div class="message-input-wrapper">
-                <div style="display:flex;gap:10px;">
-                    <textarea id="messageInput" placeholder="Type your message..."></textarea>
-                    <button class="send-btn" onclick="sendMessage()">Send</button>
-                </div>
+                <textarea id="messageInput" placeholder="Type your message..."></textarea>
+                <button class="send-btn" onclick="sendMessage()">Send</button>
             </div>
             <div class="message-input-wrapper">
-                <div style="display:flex;gap:10px;">
-                    <input id="imagePrompt" placeholder="Enter image prompt..."/>
-                    <button class="send-btn" onclick="generateImage()">Generate</button>
-                </div>
+                <input id="imagePrompt" placeholder="Enter image prompt..."/>
+                <button class="send-btn" onclick="generateImage()">Generate</button>
             </div>
         </div>
     </main>
 </div>
 
 <script>
+// Show chat
 function startChat(){
     document.getElementById('welcomeScreen').style.display='none';
     document.getElementById('sidebar').style.display='flex';
     document.getElementById('chatArea').style.display='flex';
 }
+
+// Append message
 function appendMessage(sender,text){
     const c=document.getElementById('messagesContainer');
     const div=document.createElement('div');
@@ -146,26 +157,53 @@ function appendMessage(sender,text){
     </div>`;
     c.appendChild(div);c.scrollTop=c.scrollHeight;
 }
+
+// Send message
 async function sendMessage(){
     const t=document.getElementById('messageInput');
-    const text=t.value.trim();if(!text) return;
-    appendMessage("user",text);t.value="";
+    const text=t.value.trim();if(!text) return;t.value='';
+    appendMessage("user",text);
     try{
         const r=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:text})});
         const d=await r.json();appendMessage("ai",d.reply);
     }catch{appendMessage("ai","Error contacting AI server.");}
 }
+
+// Generate image
 async function generateImage(){
     const p=document.getElementById("imagePrompt").value.trim();if(!p) return;
     appendMessage("user","[Image Prompt] "+p);
     try{
         const r=await fetch("/image-gen",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:p})});
         const d=await r.json();
-        if(d.images){d.images.forEach(url=>appendMessage("ai",`<img src="${url}" style="max-width:200px;border-radius:8px;">`));}
+        if(d.images){d.images.forEach(url=>appendMessage("ai",`<img src="${url}" style="max-width:200px;">`));}
         else appendMessage("ai","Image generation failed.");
     }catch{appendMessage("ai","Error contacting image API.");}
 }
-function loadChat(id){window.location.href="/?active_chat="+id;}
+
+// Load chat from sidebar
+function loadChat(id){
+    window.location.href="/?active_chat="+id;
+}
+
+// On page load, populate active chat
+document.addEventListener("DOMContentLoaded", () => {
+    const activeChatId = "{{ active_chat }}";
+    const chatSessions = {{ chat_sessions|tojson }};
+    if(activeChatId && chatSessions.length){
+        startChat();
+        const activeChat = chatSessions.find(c => c.id === activeChatId);
+        if(activeChat){
+            activeChat.messages.forEach(msg=>{
+                appendMessage(msg.sender, msg.message);
+            });
+            // Highlight active chat in sidebar
+            document.querySelectorAll('.sidebar-item').forEach(item=>item.classList.remove('active'));
+            const el=document.getElementById('chat-'+activeChatId);
+            if(el) el.classList.add('active');
+        }
+    }
+});
 </script>
 </body>
 </html>
