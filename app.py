@@ -7,23 +7,21 @@ from authlib.integrations.flask_client import OAuth
 
 # Load environment variables
 env = dotenv_values(".env")
-Username = env.get("Username", "User")
 AssistantName = env.get("AssistantName", "EchooAI")
 GroqAPIKey = env.get("GroqAPIKey", "")
 GoogleAPIKey = env.get("GoogleAPIKey", "")
 GoogleCSEID = env.get("GoogleCSEID", "")
 DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
+StabilityKey = env.get("STABILITY_API_KEY", "")   # NEW
 
-# Google OAuth credentials
 GoogleClientID = env.get("GOOGLE_CLIENT_ID")
 GoogleClientSecret = env.get("GOOGLE_CLIENT_SECRET")
 
-# Initialize Flask app
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.urandom(24)
 
-# Initialize Authlib OAuth
+# OAuth
 oauth = OAuth(app)
 oauth.register(
     name='google',
@@ -64,26 +62,22 @@ def GoogleSearch(query):
 def RealtimeEngine(prompt, user_info=None):
     user_name = user_info.get('name', 'User') if user_info else 'User'
 
-    # Math queries
     if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
         return solve_math(prompt)
 
-    # Google search
     if prompt.lower().startswith("search:"):
         query = prompt.replace("search:", "").strip()
         return GoogleSearch(query)
 
-    # Developer info
     if "who is your developer" in prompt.lower() or "who created you" in prompt.lower():
         return f"My developer is {DeveloperName}. {FullInformation}"
 
-    # Groq AI
     try:
         client = Groq(api_key=GroqAPIKey)
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}. The current user's name is {user_name}."},
+                {"role": "system", "content": f"You are {AssistantName}, built by {DeveloperName}. Current user: {user_name}."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=500
@@ -94,7 +88,7 @@ def RealtimeEngine(prompt, user_info=None):
         return f"Groq backend error: {e}"
 
 # --- Routes ---
-@app.route("/", methods=["GET"])
+@app.route("/")
 def home():
     user_info = session.get('user_info')
     chat_sessions = session.get('chat_sessions', [])
@@ -105,7 +99,6 @@ def home():
                            chat_sessions=chat_sessions,
                            active_chat=active_chat)
 
-# Google login
 @app.route('/google-login')
 def google_login():
     redirect_uri = url_for('google_auth', _external=True)
@@ -117,9 +110,8 @@ def google_auth():
     try:
         token = oauth.google.authorize_access_token()
         user = oauth.google.parse_id_token(token, nonce=session.get('nonce'))
-
         session['user_info'] = user
-        session['chat_sessions'] = []  # reset chat sessions
+        session['chat_sessions'] = []
         session['active_chat'] = None
         session.pop('nonce', None)
         return redirect(url_for('home'))
@@ -129,12 +121,9 @@ def google_auth():
 
 @app.route('/logout')
 def logout():
-    session.pop('user_info', None)
-    session.pop('chat_sessions', None)
-    session.pop('active_chat', None)
+    session.clear()
     return redirect(url_for('home'))
 
-# --- Chat Endpoint ---
 @app.route("/chat", methods=["POST"])
 def chat():
     user_info = session.get('user_info')
@@ -146,17 +135,13 @@ def chat():
     if not user_prompt:
         return jsonify({"reply": "Please enter a message."}), 400
 
-    # Ensure chat_sessions exists
     if 'chat_sessions' not in session:
         session['chat_sessions'] = []
-
-    # Create new chat session if none active
     if not session.get('active_chat'):
         chat_id = str(len(session['chat_sessions']) + 1)
         session['chat_sessions'].append({"id": chat_id, "title": f"Chat {chat_id}", "messages": []})
         session['active_chat'] = chat_id
 
-    # Find active chat
     for chat in session['chat_sessions']:
         if chat['id'] == session['active_chat']:
             chat['messages'].append({"sender": "user", "message": user_prompt})
@@ -167,12 +152,12 @@ def chat():
 
     return jsonify({"reply": "Error: Active chat not found."}), 500
 
-# --- Image Generation Endpoint ---
+# --- Image Generation with Stability.ai ---
 @app.route("/image-gen", methods=["POST"])
 def image_gen():
     user_info = session.get('user_info')
     if not user_info:
-        return jsonify({"error": "Please log in with Google to use image generation."}), 401
+        return jsonify({"error": "Please log in with Google"}), 401
 
     data = request.get_json()
     prompt = data.get("prompt", "").strip()
@@ -180,16 +165,21 @@ def image_gen():
         return jsonify({"error": "Prompt is required."}), 400
 
     try:
-        # Mock image (replace with real API call)
-        svg = f"<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'>" \
-              f"<rect width='100%' height='100%' fill='#f4f4f4'/>" \
-              f"<text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='20'>{prompt}</text></svg>"
-        data_url = "data:image/svg+xml;base64," + svg.encode("utf-8").hex()
-        return jsonify({"images": [data_url]})
-    except Exception as e:
-        return jsonify({"error": f"Image generation failed: {e}"}), 500
+        headers = {"Authorization": f"Bearer {StabilityKey}"}
+        response = requests.post(
+            "https://api.stability.ai/v1/generation/stable-diffusion-v1-5/text-to-image",
+            headers=headers,
+            json={"text_prompts": [{"text": prompt}], "cfg_scale": 7, "steps": 30}
+        )
 
-# Static logo
+        if response.status_code == 200:
+            img_base64 = response.json()["artifacts"][0]["base64"]
+            return jsonify({"images": ["data:image/png;base64," + img_base64]})
+        else:
+            return jsonify({"error": "Stability API failed", "details": response.text}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/logo/<path:filename>')
 def logo(filename):
     return send_from_directory('static', filename)
