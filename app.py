@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory, session, redirect, url_for
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from sympy import sympify, solve, simplify, pretty
 from dotenv import dotenv_values
 from groq import Groq
@@ -13,7 +13,7 @@ GoogleAPIKey = env.get("GoogleAPIKey", "")
 GoogleCSEID = env.get("GoogleCSEID", "")
 DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
-StabilityKey = env.get("STABILITY_API_KEY", "")   # NEW
+StabilityKey = env.get("STABILITY_API_KEY", "")  
 
 GoogleClientID = env.get("GOOGLE_CLIENT_ID")
 GoogleClientSecret = env.get("GOOGLE_CLIENT_SECRET")
@@ -21,7 +21,7 @@ GoogleClientSecret = env.get("GOOGLE_CLIENT_SECRET")
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.urandom(24)
 
-# OAuth
+# OAuth setup
 oauth = OAuth(app)
 oauth.register(
     name='google',
@@ -93,11 +93,20 @@ def home():
     user_info = session.get('user_info')
     chat_sessions = session.get('chat_sessions', [])
     active_chat = session.get('active_chat')
-    return render_template("index.html",
-                           assistant_name=AssistantName,
-                           user_info=user_info,
-                           chat_sessions=chat_sessions,
-                           active_chat=active_chat)
+
+    # Read active chat from query params
+    active_chat_param = request.args.get("active_chat")
+    if active_chat_param:
+        session['active_chat'] = active_chat_param
+        active_chat = active_chat_param
+
+    return render_template(
+        "index.html",
+        assistant_name=AssistantName,
+        user_info=user_info,
+        chat_sessions=chat_sessions,
+        active_chat=active_chat
+    )
 
 @app.route('/google-login')
 def google_login():
@@ -137,13 +146,15 @@ def chat():
 
     if 'chat_sessions' not in session:
         session['chat_sessions'] = []
+
     if not session.get('active_chat'):
         chat_id = str(len(session['chat_sessions']) + 1)
         session['chat_sessions'].append({"id": chat_id, "title": f"Chat {chat_id}", "messages": []})
         session['active_chat'] = chat_id
 
+    active_chat = session['active_chat']
     for chat in session['chat_sessions']:
-        if chat['id'] == session['active_chat']:
+        if chat['id'] == active_chat:
             chat['messages'].append({"sender": "user", "message": user_prompt})
             reply = RealtimeEngine(user_prompt, user_info)
             chat['messages'].append({"sender": "ai", "message": reply})
@@ -166,17 +177,33 @@ def image_gen():
 
     try:
         headers = {"Authorization": f"Bearer {StabilityKey}"}
+        payload = {
+            "text_prompts": [{"text": prompt}],
+            "cfg_scale": 7,
+            "steps": 30,
+            "samples": 1,
+            "width": 512,
+            "height": 512,
+            "output_format": "webp"
+        }
+
         response = requests.post(
-            "https://api.stability.ai/v1/generation/stable-diffusion-v1-5/text-to-image",
+            "https://api.stability.ai/v2beta/stable-image/generate",
             headers=headers,
-            json={"text_prompts": [{"text": prompt}], "cfg_scale": 7, "steps": 30}
+            json=payload
         )
 
-        if response.status_code == 200:
-            img_base64 = response.json()["artifacts"][0]["base64"]
-            return jsonify({"images": ["data:image/png;base64," + img_base64]})
-        else:
-            return jsonify({"error": "Stability API failed", "details": response.text}), 500
+        resp_json = response.json()
+        if response.status_code == 200 and "artifacts" in resp_json:
+            images = []
+            for artifact in resp_json["artifacts"]:
+                img_base64 = artifact.get("base64")
+                if img_base64:
+                    images.append("data:image/webp;base64," + img_base64)
+            return jsonify({"images": images})
+
+        return jsonify({"error": "Stability API failed", "details": resp_json}), 500
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
