@@ -4,25 +4,31 @@ from dotenv import dotenv_values
 from groq import Groq
 import requests, os
 from authlib.integrations.flask_client import OAuth
+from datetime import datetime
 
 # Load environment variables
 env = dotenv_values(".env")
+Username = env.get("Username", "User")
 AssistantName = env.get("AssistantName", "EchooAI")
 GroqAPIKey = env.get("GroqAPIKey", "")
 GoogleAPIKey = env.get("GoogleAPIKey", "")
 GoogleCSEID = env.get("GoogleCSEID", "")
 DeveloperName = env.get("DeveloperName", "Nayan")
 FullInformation = env.get("FullInformation", "")
-StabilityKey = env.get("STABILITY_API_KEY", "")
+HF_API_KEY = env.get("HuggingFaceAPIKey", "")
 
+# Google OAuth credentials
 GoogleClientID = env.get("GOOGLE_CLIENT_ID")
 GoogleClientSecret = env.get("GOOGLE_CLIENT_SECRET")
 
+# Initialize Flask app
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.urandom(24)
 
-# OAuth
+# Initialize Authlib OAuth
 oauth = OAuth(app)
+
+# Register Google OAuth
 oauth.register(
     name='google',
     client_id=GoogleClientID,
@@ -62,22 +68,26 @@ def GoogleSearch(query):
 def RealtimeEngine(prompt, user_info=None):
     user_name = user_info.get('name', 'User') if user_info else 'User'
 
+    # Math queries
     if any(op in prompt for op in ["+", "-", "*", "/", "=", "solve", "integrate", "derivative", "diff", "factor", "limit"]):
         return solve_math(prompt)
 
+    # Google search
     if prompt.lower().startswith("search:"):
         query = prompt.replace("search:", "").strip()
         return GoogleSearch(query)
 
+    # Developer info
     if "who is your developer" in prompt.lower() or "who created you" in prompt.lower():
         return f"My developer is {DeveloperName}. {FullInformation}"
 
+    # Groq AI
     try:
         client = Groq(api_key=GroqAPIKey)
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama-3.1-8b-instant",   # ⚡ Faster than whisper
             messages=[
-                {"role": "system", "content": f"You are {AssistantName}, built by {DeveloperName}. Current user: {user_name}."},
+                {"role": "system", "content": f"You are {AssistantName}, an AI built by {DeveloperName}. The current user's name is {user_name}."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=500
@@ -87,22 +97,33 @@ def RealtimeEngine(prompt, user_info=None):
         print(e)
         return f"Groq backend error: {e}"
 
+# --- Image Generation (HuggingFace SDXL) ---
+def generate_image(prompt):
+    try:
+        url = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+        headers = {"Authorization": f"Bearer {HF_API_KEY}"}
+        payload = {"inputs": f"{prompt}, ultra high quality, 4k, realistic"}
+        
+        r = requests.post(url, headers=headers, json=payload, timeout=60)
+        if r.status_code != 200 or "image" not in r.headers.get("Content-Type", ""):
+            return None
+        
+        # Save in static folder
+        filename = f"generated_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        filepath = os.path.join("static", filename)
+        with open(filepath, "wb") as f:
+            f.write(r.content)
+        return f"/static/{filename}"
+    except Exception as e:
+        print(f"Image API error: {e}")
+        return None
+
 # --- Routes ---
-@app.route("/")
+@app.route("/", methods=["GET"])
 def home():
     user_info = session.get('user_info')
-    chat_sessions = session.get('chat_sessions', [])
-    active_chat = request.args.get("active_chat", session.get('active_chat'))
-
-    # Save active chat in session
-    if active_chat:
-        session['active_chat'] = active_chat
-
-    return render_template("index.html",
-                           assistant_name=AssistantName,
-                           user_info=user_info,
-                           chat_sessions=chat_sessions,
-                           active_chat=active_chat)
+    chat_history = session.get('chat_history', [])
+    return render_template("index.html", assistant_name=AssistantName, user_info=user_info, chat_history=chat_history)
 
 @app.route('/google-login')
 def google_login():
@@ -116,8 +137,7 @@ def google_auth():
         token = oauth.google.authorize_access_token()
         user = oauth.google.parse_id_token(token, nonce=session.get('nonce'))
         session['user_info'] = user
-        session['chat_sessions'] = []
-        session['active_chat'] = None
+        session['chat_history'] = []
         session.pop('nonce', None)
         return redirect(url_for('home'))
     except Exception as e:
@@ -126,7 +146,8 @@ def google_auth():
 
 @app.route('/logout')
 def logout():
-    session.clear()
+    session.pop('user_info', None)
+    session.pop('chat_history', None)
     return redirect(url_for('home'))
 
 @app.route("/chat", methods=["POST"])
@@ -139,55 +160,30 @@ def chat():
     user_prompt = data.get("message", "")
     if not user_prompt:
         return jsonify({"reply": "Please enter a message."}), 400
+    
+    chat_history = session.get('chat_history', [])
+    chat_history.append({"sender": "user", "message": user_prompt})
+    session['chat_history'] = chat_history
 
-    if 'chat_sessions' not in session:
-        session['chat_sessions'] = []
-    if not session.get('active_chat'):
-        chat_id = str(len(session['chat_sessions']) + 1)
-        session['chat_sessions'].append({"id": chat_id, "title": f"Chat {chat_id}", "messages": []})
-        session['active_chat'] = chat_id
+    reply = RealtimeEngine(user_prompt, user_info)
 
-    for chat in session['chat_sessions']:
-        if chat['id'] == session['active_chat']:
-            chat['messages'].append({"sender": "user", "message": user_prompt})
-            reply = RealtimeEngine(user_prompt, user_info)
-            chat['messages'].append({"sender": "ai", "message": reply})
-            session.modified = True
-            return jsonify({"reply": reply})
+    chat_history.append({"sender": "ai", "message": reply})
+    session['chat_history'] = chat_history
+    
+    return jsonify({"reply": reply})
 
-    return jsonify({"reply": "Error: Active chat not found."}), 500
-
-# --- Image Generation with Stability.ai ---
+# --- Image Generation Route ---
 @app.route("/image-gen", methods=["POST"])
 def image_gen():
-    user_info = session.get('user_info')
-    if not user_info:
-        return jsonify({"error": "Please log in with Google"}), 401
-
     data = request.get_json()
-    prompt = data.get("prompt", "").strip()
+    prompt = data.get("prompt", "")
     if not prompt:
-        return jsonify({"error": "Prompt is required."}), 400
-
-    try:
-        headers = {"Authorization": f"Bearer {StabilityKey}"}
-        response = requests.post(
-            "https://api.stability.ai/v2beta/stable-image/generate/ultra",
-            headers={**headers, "accept": "image/*"},
-            files={"none": ''},
-            data={"prompt": prompt, "output_format": "webp"}
-        )
-
-        if response.status_code == 200:
-            # Save file
-            filepath = f"static/{prompt.replace(' ', '_')}.webp"
-            with open(filepath, "wb") as f:
-                f.write(response.content)
-            return jsonify({"images": [url_for('static', filename=f"{prompt.replace(' ', '_')}.webp")]})
-        else:
-            return jsonify({"error": "Stability API failed", "details": response.text}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"images": [], "error": "No prompt given"})
+    
+    img_url = generate_image(prompt)
+    if img_url:
+        return jsonify({"images": [img_url]})
+    return jsonify({"images": [], "error": "Image generation failed"})
 
 @app.route('/logo/<path:filename>')
 def logo(filename):
